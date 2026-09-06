@@ -52,83 +52,83 @@ export interface ModelWeights {
  */
 export const DEFAULT_O25_WEIGHTS: ModelWeights = {
   weights: [
-    0.35,  // homeTeamXGHome (strongest predictor)
-    -0.15, // homeTeamXGAHome
-    0.30,  // awayTeamXGAway
-    -0.12, // awayTeamXGAAway
-    0.08,  // homeCleanSheetRate
-    -0.10, // awayFailedToScoreRate
-    0.45,  // combinedXG (very strong)
-    0.10,  // xGDifference
-    0.05,  // leagueEncoded
-    0.12,  // homeAvgGoalsScored
-    0.10,  // awayAvgGoalsScored
-    -0.08, // homeAvgGoalsConceded
-    -0.06, // awayAvgGoalsConceded
+    0.42,  // homeTeamXGHome (strongest predictor)
+    -0.18, // homeTeamXGAHome
+    0.38,  // awayTeamXGAway
+    -0.15, // awayTeamXGAAway
+    0.10,  // homeCleanSheetRate
+    -0.12, // awayFailedToScoreRate
+    0.55,  // combinedXG (very strong)
+    0.12,  // xGDifference
+    0.06,  // leagueEncoded
+    0.15,  // homeAvgGoalsScored
+    0.12,  // awayAvgGoalsScored
+    -0.10, // homeAvgGoalsConceded
+    -0.08, // awayAvgGoalsConceded
   ],
-  bias: -2.5,
+  bias: -2.8,
   featureNorms: [
-    { mean: 1.4, std: 0.5 },   // homeXG
-    { mean: 1.1, std: 0.4 },   // homeXGA
-    { mean: 1.1, std: 0.4 },   // awayXG
-    { mean: 1.3, std: 0.5 },   // awayXGA
+    { mean: 1.5, std: 0.55 },   // homeXG
+    { mean: 1.2, std: 0.45 },   // homeXGA
+    { mean: 1.2, std: 0.45 },   // awayXG
+    { mean: 1.4, std: 0.55 },   // awayXGA
     { mean: 0.35, std: 0.15 }, // CS rate
-    { mean: 0.20, std: 0.10 }, // FTS rate
-    { mean: 2.6, std: 0.6 },   // combined xG
-    { mean: 0.0, std: 0.7 },   // xG diff
+    { mean: 0.22, std: 0.11 }, // FTS rate
+    { mean: 2.7, std: 0.65 },   // combined xG
+    { mean: 0.0, std: 0.75 },   // xG diff
     { mean: 5.0, std: 3.0 },   // league encoded
-    { mean: 1.5, std: 0.5 },   // home avg goals
-    { mean: 1.3, std: 0.5 },   // away avg goals
-    { mean: 1.2, std: 0.4 },   // home avg conceded
-    { mean: 1.3, std: 0.4 },   // away avg conceded
+    { mean: 1.5, std: 0.55 },   // home avg goals
+    { mean: 1.3, std: 0.55 },   // away avg goals
+    { mean: 1.2, std: 0.45 },   // home avg conceded
+    { mean: 1.3, std: 0.45 },   // away avg conceded
   ],
   label: 'Over 2.5 Goals',
   metadata: {
     trainedOn: 0,
     accuracy: 0,
     calibrationError: 0,
-    trainedAt: 'default',
+    trainedAt: 'default-v2-improved',
   },
 };
 
 export const DEFAULT_BTTS_WEIGHTS: ModelWeights = {
   weights: [
-    0.30,  // homeTeamXGHome
-    0.10,  // homeTeamXGAHome (conceding xG helps BTTS)
-    0.25,  // awayTeamXGAway
-    0.08,  // awayTeamXGAAway
-    -0.15, // homeCleanSheetRate (anti-BTTS)
-    -0.20, // awayFailedToScoreRate (anti-BTTS)
-    0.15,  // combinedXG
-    -0.05, // xGDifference (close games = more BTTS)
-    0.08,  // leagueEncoded
-    0.12,  // homeAvgGoalsScored
-    0.10,  // awayAvgGoalsScored
-    0.15,  // homeAvgGoalsConceded (leaky defense = BTTS)
-    0.12,  // awayAvgGoalsConceded
+    0.35,  // homeTeamXGHome
+    0.12,  // homeTeamXGAHome (conceding xG helps BTTS)
+    0.30,  // awayTeamXGAway
+    0.10,  // awayTeamXGAAway
+    -0.18, // homeCleanSheetRate (anti-BTTS)
+    -0.25, // awayFailedToScoreRate (anti-BTTS)
+    0.20,  // combinedXG
+    -0.08, // xGDifference (close games = more BTTS)
+    0.10,  // leagueEncoded
+    0.15,  // homeAvgGoalsScored
+    0.12,  // awayAvgGoalsScored
+    0.18,  // homeAvgGoalsConceded (leaky defense = BTTS)
+    0.15,  // awayAvgGoalsConceded
   ],
-  bias: -2.0,
+  bias: -2.2,
   featureNorms: [
-    { mean: 1.4, std: 0.5 },
-    { mean: 1.1, std: 0.4 },
-    { mean: 1.1, std: 0.4 },
-    { mean: 1.3, std: 0.5 },
+    { mean: 1.5, std: 0.55 },
+    { mean: 1.2, std: 0.45 },
+    { mean: 1.2, std: 0.45 },
+    { mean: 1.4, std: 0.55 },
     { mean: 0.35, std: 0.15 },
-    { mean: 0.20, std: 0.10 },
-    { mean: 2.6, std: 0.6 },
-    { mean: 0.0, std: 0.7 },
+    { mean: 0.22, std: 0.11 },
+    { mean: 2.7, std: 0.65 },
+    { mean: 0.0, std: 0.75 },
     { mean: 5.0, std: 3.0 },
-    { mean: 1.5, std: 0.5 },
-    { mean: 1.3, std: 0.5 },
-    { mean: 1.2, std: 0.4 },
-    { mean: 1.3, std: 0.4 },
+    { mean: 1.5, std: 0.55 },
+    { mean: 1.3, std: 0.55 },
+    { mean: 1.2, std: 0.45 },
+    { mean: 1.3, std: 0.45 },
   ],
   label: 'BTTS Yes',
   metadata: {
     trainedOn: 0,
     accuracy: 0,
     calibrationError: 0,
-    trainedAt: 'default',
+    trainedAt: 'default-v2-improved',
   },
 };
 

@@ -1,51 +1,46 @@
 /**
+ * Sigmoid function for logistic regression
+ */
+export declare function sigmoid(x: number): number;
+/**
+ * Z-score normalization
+ */
+export declare function zScore(value: number, mean: number, std: number): number;
+/**
  * Convert decimal odds to implied probability
  */
-export declare function oddsToImpliedProbability(odds: number): number;
+export declare function oddsToImpliedProbability(decimalOdds: number): number;
 /**
- * Calculate the value (edge) of a bet
- * Value = model_probability - implied_probability
+ * Calculate value edge: modelProb - impliedProb
  */
 export declare function calculateValue(modelProb: number, decimalOdds: number): number;
 /**
- * Calculate Kelly Criterion stake fraction
+ * Calculate Kelly Criterion stake
  * f* = (bp - q) / b
- * where b = odds - 1, p = model probability, q = 1 - p
+ * where:
+ *   b = decimal_odds - 1
+ *   p = model probability
+ *   q = 1 - p
  */
-export declare function kellyCriterion(modelProb: number, decimalOdds: number): number;
-/**
- * Apply fractional Kelly (more conservative)
- */
-export declare function fractionalKelly(modelProb: number, decimalOdds: number, fraction?: number): number;
-/**
- * Calculate recommended stake based on Kelly and bankroll
- */
-export declare function calculateStake(modelProb: number, decimalOdds: number, bankroll: number, kellyCap?: number, fixedPct?: number): {
-    stake: number;
-    kellyFraction: number;
-};
+export declare function calculateKelly(modelProb: number, decimalOdds: number, maxFraction?: number): number;
 /**
  * Calculate ROI from a series of bets
  */
-export declare function calculateROI(totalProfit: number, totalStake: number): number;
+export declare function calculateROI(totalStake: number, totalProfit: number): number;
 /**
- * Calculate max drawdown from a profit series
+ * Calculate maximum drawdown from a series of cumulative profits
  */
-export declare function maxDrawdown(profits: number[]): number;
+export declare function maxDrawdown(cumulativeProfits: number[]): number;
 /**
- * Sigmoid function for logistic regression
+ * Kelly Criterion calculation (alias for calculateKelly)
  */
-export declare function sigmoid(z: number): number;
+export declare function kellyCriterion(modelProb: number, decimalOdds: number, maxFraction?: number): number;
 /**
- * Standardize a value using z-score normalization
+ * Calculate recommended stake as amount (not percentage)
+ * Returns object with stake amount and kelly fraction used
  */
-export declare function zScore(value: number, mean: number, stdDev: number): number;
-/**
- * Min-max normalize a value to [0, 1]
- */
-export declare function minMaxNormalize(value: number, min: number, max: number): number;
-/**
- * Clamp a number between min and max
- */
-export declare function clamp(value: number, min: number, max: number): number;
+export declare function calculateStake(modelProb: number, decimalOdds: number, bankroll: number, kellyCap?: number, fixedStakePct?: number): {
+    stake: number;
+    kellyFraction: number;
+};
 //# sourceMappingURL=math.d.ts.map

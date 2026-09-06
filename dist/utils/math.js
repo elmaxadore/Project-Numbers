@@ -3,126 +3,108 @@
 // Math Utilities for the Betting System
 // ============================================================
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.oddsToImpliedProbability = oddsToImpliedProbability;
-exports.calculateValue = calculateValue;
-exports.kellyCriterion = kellyCriterion;
-exports.fractionalKelly = fractionalKelly;
-exports.calculateStake = calculateStake;
-exports.calculateROI = calculateROI;
-exports.maxDrawdown = maxDrawdown;
 exports.sigmoid = sigmoid;
 exports.zScore = zScore;
-exports.minMaxNormalize = minMaxNormalize;
-exports.clamp = clamp;
+exports.oddsToImpliedProbability = oddsToImpliedProbability;
+exports.calculateValue = calculateValue;
+exports.calculateKelly = calculateKelly;
+exports.calculateROI = calculateROI;
+exports.maxDrawdown = maxDrawdown;
+exports.kellyCriterion = kellyCriterion;
+exports.calculateStake = calculateStake;
+/**
+ * Sigmoid function for logistic regression
+ */
+function sigmoid(x) {
+    return 1 / (1 + Math.exp(-x));
+}
+/**
+ * Z-score normalization
+ */
+function zScore(value, mean, std) {
+    if (std === 0)
+        return 0;
+    return (value - mean) / std;
+}
 /**
  * Convert decimal odds to implied probability
  */
-function oddsToImpliedProbability(odds) {
-    return 1 / odds;
+function oddsToImpliedProbability(decimalOdds) {
+    if (decimalOdds <= 1)
+        return 1;
+    return 1 / decimalOdds;
 }
 /**
- * Calculate the value (edge) of a bet
- * Value = model_probability - implied_probability
+ * Calculate value edge: modelProb - impliedProb
  */
 function calculateValue(modelProb, decimalOdds) {
-    const implied = oddsToImpliedProbability(decimalOdds);
-    return modelProb - implied;
+    const impliedProb = oddsToImpliedProbability(decimalOdds);
+    return modelProb - impliedProb;
 }
 /**
- * Calculate Kelly Criterion stake fraction
+ * Calculate Kelly Criterion stake
  * f* = (bp - q) / b
- * where b = odds - 1, p = model probability, q = 1 - p
+ * where:
+ *   b = decimal_odds - 1
+ *   p = model probability
+ *   q = 1 - p
  */
-function kellyCriterion(modelProb, decimalOdds) {
+function calculateKelly(modelProb, decimalOdds, maxFraction = 0.25) {
     const b = decimalOdds - 1;
     const p = modelProb;
     const q = 1 - p;
-    if (b <= 0 || p <= 0)
-        return 0;
     const kelly = (b * p - q) / b;
-    return Math.max(0, kelly);
-}
-/**
- * Apply fractional Kelly (more conservative)
- */
-function fractionalKelly(modelProb, decimalOdds, fraction = 0.25) {
-    return kellyCriterion(modelProb, decimalOdds) * fraction;
-}
-/**
- * Calculate recommended stake based on Kelly and bankroll
- */
-function calculateStake(modelProb, decimalOdds, bankroll, kellyCap = 0.25, fixedPct = 0.02) {
-    const fullKelly = kellyCriterion(modelProb, decimalOdds);
-    const cappedKelly = Math.min(fullKelly * kellyCap, kellyCap);
-    const kellyFraction = cappedKelly;
-    let stake;
-    if (fullKelly > 0 && cappedKelly > 0) {
-        stake = bankroll * cappedKelly;
-    }
-    else {
-        // Fallback to fixed stake
-        stake = bankroll * fixedPct;
-    }
-    return {
-        stake: Math.round(stake * 100) / 100,
-        kellyFraction: Math.round(kellyFraction * 10000) / 10000,
-    };
+    // Apply fractional Kelly and clamp to [0, 1]
+    const fractionalKelly = kelly * maxFraction;
+    return Math.max(0, Math.min(1, fractionalKelly));
 }
 /**
  * Calculate ROI from a series of bets
  */
-function calculateROI(totalProfit, totalStake) {
+function calculateROI(totalStake, totalProfit) {
     if (totalStake === 0)
         return 0;
     return (totalProfit / totalStake) * 100;
 }
 /**
- * Calculate max drawdown from a profit series
+ * Calculate maximum drawdown from a series of cumulative profits
  */
-function maxDrawdown(profits) {
-    let peak = 0;
+function maxDrawdown(cumulativeProfits) {
+    let peak = cumulativeProfits[0] || 0;
     let maxDD = 0;
-    let cumulative = 0;
-    for (const profit of profits) {
-        cumulative += profit;
-        if (cumulative > peak) {
-            peak = cumulative;
+    for (const profit of cumulativeProfits) {
+        if (profit > peak) {
+            peak = profit;
         }
-        const dd = peak - cumulative;
-        if (dd > maxDD) {
-            maxDD = dd;
+        const drawdown = (peak - profit) / peak;
+        if (drawdown > maxDD) {
+            maxDD = drawdown;
         }
     }
     return maxDD;
 }
 /**
- * Sigmoid function for logistic regression
+ * Kelly Criterion calculation (alias for calculateKelly)
  */
-function sigmoid(z) {
-    // Clamp to prevent overflow
-    const clamped = Math.max(-500, Math.min(500, z));
-    return 1 / (1 + Math.exp(-clamped));
+function kellyCriterion(modelProb, decimalOdds, maxFraction = 0.25) {
+    return calculateKelly(modelProb, decimalOdds, maxFraction);
 }
 /**
- * Standardize a value using z-score normalization
+ * Calculate recommended stake as amount (not percentage)
+ * Returns object with stake amount and kelly fraction used
  */
-function zScore(value, mean, stdDev) {
-    if (stdDev === 0)
-        return 0;
-    return (value - mean) / stdDev;
-}
-/**
- * Min-max normalize a value to [0, 1]
- */
-function minMaxNormalize(value, min, max) {
-    if (max === min)
-        return 0.5;
-    return (value - min) / (max - min);
-}
-/**
- * Clamp a number between min and max
- */
-function clamp(value, min, max) {
-    return Math.min(Math.max(value, min), max);
+function calculateStake(modelProb, decimalOdds, bankroll, kellyCap = 0.25, fixedStakePct = 0.02) {
+    const kellyFraction = calculateKelly(modelProb, decimalOdds, kellyCap);
+    // If Kelly is zero or negative, fall back to fixed stake
+    if (kellyFraction <= 0) {
+        return {
+            stake: bankroll * fixedStakePct,
+            kellyFraction: 0
+        };
+    }
+    return {
+        stake: bankroll * kellyFraction,
+        kellyFraction
+    };
 }
 //# sourceMappingURL=math.js.map
