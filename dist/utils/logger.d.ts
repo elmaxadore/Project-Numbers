@@ -1,14 +1,24 @@
-export declare enum LogLevel {
-    DEBUG = 0,
-    INFO = 1,
-    WARN = 2,
-    ERROR = 3
+type LogLevel = 'debug' | 'info' | 'warn' | 'error' | 'success';
+interface LogEntry {
+    level: LogLevel;
+    message: string;
+    timestamp: string;
 }
-export declare const logger: {
-    debug(msg: string, ...args: unknown[]): void;
-    info(msg: string, ...args: unknown[]): void;
-    warn(msg: string, ...args: unknown[]): void;
-    error(msg: string, ...args: unknown[]): void;
-    success(msg: string, ...args: unknown[]): void;
-};
+declare class Logger {
+    private minLevel;
+    private logs;
+    private levelPriority;
+    setLevel(level: LogLevel): void;
+    private shouldLog;
+    private formatMessage;
+    debug(message: string): void;
+    info(message: string): void;
+    warn(message: string): void;
+    error(message: string): void;
+    success(message: string): void;
+    getLogs(): LogEntry[];
+    clear(): void;
+}
+export declare const logger: Logger;
+export {};
 //# sourceMappingURL=logger.d.ts.map

@@ -4,7 +4,7 @@
 // Predicts P(Over 2.5 Goals) and P(BTTS) using xG features
 // ============================================================
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.DEFAULT_BTTS_WEIGHTS = exports.DEFAULT_O25_WEIGHTS = void 0;
+exports.LogisticRegression = exports.DEFAULT_BTTS_WEIGHTS = exports.DEFAULT_O25_WEIGHTS = void 0;
 exports.normalizeFeatures = normalizeFeatures;
 exports.extractFeatures = extractFeatures;
 exports.predict = predict;
@@ -19,82 +19,82 @@ const logger_js_1 = require("../utils/logger.js");
  */
 exports.DEFAULT_O25_WEIGHTS = {
     weights: [
-        0.35, // homeTeamXGHome (strongest predictor)
-        -0.15, // homeTeamXGAHome
-        0.30, // awayTeamXGAway
-        -0.12, // awayTeamXGAAway
-        0.08, // homeCleanSheetRate
-        -0.10, // awayFailedToScoreRate
-        0.45, // combinedXG (very strong)
-        0.10, // xGDifference
-        0.05, // leagueEncoded
-        0.12, // homeAvgGoalsScored
-        0.10, // awayAvgGoalsScored
-        -0.08, // homeAvgGoalsConceded
-        -0.06, // awayAvgGoalsConceded
+        0.42, // homeTeamXGHome (strongest predictor)
+        -0.18, // homeTeamXGAHome
+        0.38, // awayTeamXGAway
+        -0.15, // awayTeamXGAAway
+        0.10, // homeCleanSheetRate
+        -0.12, // awayFailedToScoreRate
+        0.55, // combinedXG (very strong)
+        0.12, // xGDifference
+        0.06, // leagueEncoded
+        0.15, // homeAvgGoalsScored
+        0.12, // awayAvgGoalsScored
+        -0.10, // homeAvgGoalsConceded
+        -0.08, // awayAvgGoalsConceded
     ],
-    bias: -2.5,
+    bias: -2.8,
     featureNorms: [
-        { mean: 1.4, std: 0.5 }, // homeXG
-        { mean: 1.1, std: 0.4 }, // homeXGA
-        { mean: 1.1, std: 0.4 }, // awayXG
-        { mean: 1.3, std: 0.5 }, // awayXGA
+        { mean: 1.5, std: 0.55 }, // homeXG
+        { mean: 1.2, std: 0.45 }, // homeXGA
+        { mean: 1.2, std: 0.45 }, // awayXG
+        { mean: 1.4, std: 0.55 }, // awayXGA
         { mean: 0.35, std: 0.15 }, // CS rate
-        { mean: 0.20, std: 0.10 }, // FTS rate
-        { mean: 2.6, std: 0.6 }, // combined xG
-        { mean: 0.0, std: 0.7 }, // xG diff
+        { mean: 0.22, std: 0.11 }, // FTS rate
+        { mean: 2.7, std: 0.65 }, // combined xG
+        { mean: 0.0, std: 0.75 }, // xG diff
         { mean: 5.0, std: 3.0 }, // league encoded
-        { mean: 1.5, std: 0.5 }, // home avg goals
-        { mean: 1.3, std: 0.5 }, // away avg goals
-        { mean: 1.2, std: 0.4 }, // home avg conceded
-        { mean: 1.3, std: 0.4 }, // away avg conceded
+        { mean: 1.5, std: 0.55 }, // home avg goals
+        { mean: 1.3, std: 0.55 }, // away avg goals
+        { mean: 1.2, std: 0.45 }, // home avg conceded
+        { mean: 1.3, std: 0.45 }, // away avg conceded
     ],
     label: 'Over 2.5 Goals',
     metadata: {
         trainedOn: 0,
         accuracy: 0,
         calibrationError: 0,
-        trainedAt: 'default',
+        trainedAt: 'default-v2-improved',
     },
 };
 exports.DEFAULT_BTTS_WEIGHTS = {
     weights: [
-        0.30, // homeTeamXGHome
-        0.10, // homeTeamXGAHome (conceding xG helps BTTS)
-        0.25, // awayTeamXGAway
-        0.08, // awayTeamXGAAway
-        -0.15, // homeCleanSheetRate (anti-BTTS)
-        -0.20, // awayFailedToScoreRate (anti-BTTS)
-        0.15, // combinedXG
-        -0.05, // xGDifference (close games = more BTTS)
-        0.08, // leagueEncoded
-        0.12, // homeAvgGoalsScored
-        0.10, // awayAvgGoalsScored
-        0.15, // homeAvgGoalsConceded (leaky defense = BTTS)
-        0.12, // awayAvgGoalsConceded
+        0.35, // homeTeamXGHome
+        0.12, // homeTeamXGAHome (conceding xG helps BTTS)
+        0.30, // awayTeamXGAway
+        0.10, // awayTeamXGAAway
+        -0.18, // homeCleanSheetRate (anti-BTTS)
+        -0.25, // awayFailedToScoreRate (anti-BTTS)
+        0.20, // combinedXG
+        -0.08, // xGDifference (close games = more BTTS)
+        0.10, // leagueEncoded
+        0.15, // homeAvgGoalsScored
+        0.12, // awayAvgGoalsScored
+        0.18, // homeAvgGoalsConceded (leaky defense = BTTS)
+        0.15, // awayAvgGoalsConceded
     ],
-    bias: -2.0,
+    bias: -2.2,
     featureNorms: [
-        { mean: 1.4, std: 0.5 },
-        { mean: 1.1, std: 0.4 },
-        { mean: 1.1, std: 0.4 },
-        { mean: 1.3, std: 0.5 },
+        { mean: 1.5, std: 0.55 },
+        { mean: 1.2, std: 0.45 },
+        { mean: 1.2, std: 0.45 },
+        { mean: 1.4, std: 0.55 },
         { mean: 0.35, std: 0.15 },
-        { mean: 0.20, std: 0.10 },
-        { mean: 2.6, std: 0.6 },
-        { mean: 0.0, std: 0.7 },
+        { mean: 0.22, std: 0.11 },
+        { mean: 2.7, std: 0.65 },
+        { mean: 0.0, std: 0.75 },
         { mean: 5.0, std: 3.0 },
-        { mean: 1.5, std: 0.5 },
-        { mean: 1.3, std: 0.5 },
-        { mean: 1.2, std: 0.4 },
-        { mean: 1.3, std: 0.4 },
+        { mean: 1.5, std: 0.55 },
+        { mean: 1.3, std: 0.55 },
+        { mean: 1.2, std: 0.45 },
+        { mean: 1.3, std: 0.45 },
     ],
     label: 'BTTS Yes',
     metadata: {
         trainedOn: 0,
         accuracy: 0,
         calibrationError: 0,
-        trainedAt: 'default',
+        trainedAt: 'default-v2-improved',
     },
 };
 /**
@@ -225,6 +225,119 @@ function trainModel(trainingData, learningRate = 0.01, epochs = 1000, label = 'U
         },
     };
 }
+/**
+ * Logistic Regression class for multi-sport prediction
+ */
+class LogisticRegression {
+    config;
+    weights = [];
+    bias = 0;
+    featureNorms = [];
+    constructor(config = {}) {
+        this.config = config;
+    }
+    /**
+     * Train the model on provided data
+     */
+    train(features, labels) {
+        const numFeatures = features[0].length;
+        const learningRate = this.config.learningRate || 0.1;
+        const epochs = this.config.epochs || 500;
+        const lambda = this.config.lambda || 0.01; // L2 regularization
+        // Initialize weights
+        this.weights = new Array(numFeatures).fill(0).map(() => (Math.random() - 0.5) * 0.1);
+        this.bias = 0;
+        // Compute feature normalization
+        for (let f = 0; f < numFeatures; f++) {
+            const values = features.map(row => row[f]);
+            const mean = values.reduce((a, b) => a + b, 0) / values.length;
+            const variance = values.reduce((a, b) => a + (b - mean) ** 2, 0) / values.length;
+            const std = Math.sqrt(variance) || 1;
+            this.featureNorms.push({ mean, std });
+        }
+        // Normalize features
+        const normalizedFeatures = features.map(row => row.map((val, i) => (val - this.featureNorms[i].mean) / this.featureNorms[i].std));
+        // Gradient descent with L2 regularization
+        for (let epoch = 0; epoch < epochs; epoch++) {
+            let totalLoss = 0;
+            const gradWeights = new Array(numFeatures).fill(0);
+            let gradBias = 0;
+            for (let i = 0; i < features.length; i++) {
+                const sample = normalizedFeatures[i];
+                const label = labels[i];
+                // Forward pass
+                let z = this.bias;
+                for (let j = 0; j < numFeatures; j++) {
+                    z += sample[j] * this.weights[j];
+                }
+                const prediction = 1 / (1 + Math.exp(-z));
+                // Compute error
+                const error = prediction - label;
+                totalLoss += error * error;
+                // Accumulate gradients
+                for (let j = 0; j < numFeatures; j++) {
+                    gradWeights[j] += error * sample[j];
+                }
+                gradBias += error;
+            }
+            // Update weights with L2 regularization
+            const n = features.length;
+            for (let j = 0; j < numFeatures; j++) {
+                this.weights[j] -= learningRate * (gradWeights[j] / n + lambda * this.weights[j]);
+            }
+            this.bias -= learningRate * gradBias / n;
+        }
+    }
+    /**
+     * Predict class labels
+     */
+    predict(features) {
+        return features.map(row => {
+            const prob = this.predictProbability(row);
+            return prob >= 0.5 ? 1 : 0;
+        });
+    }
+    /**
+     * Predict probabilities
+     */
+    predictProbabilities(features) {
+        return features.map(row => this.predictProbability(row));
+    }
+    /**
+     * Predict single probability
+     */
+    predictProbability(featureRow) {
+        // Normalize features
+        const normalized = featureRow.map((val, i) => (val - this.featureNorms[i].mean) / this.featureNorms[i].std);
+        // Compute z-score
+        let z = this.bias;
+        for (let i = 0; i < this.weights.length; i++) {
+            z += normalized[i] * this.weights[i];
+        }
+        // Sigmoid
+        return 1 / (1 + Math.exp(-z));
+    }
+    /**
+     * Predict probabilities (alias for predictProbabilities)
+     */
+    predictProb(features) {
+        return this.predictProbabilities(features);
+    }
+    /**
+     * Get weights (for ensemble creation)
+     */
+    getWeights() {
+        return [...this.weights];
+    }
+    /**
+     * Set weights (for ensemble creation)
+     */
+    setWeights(weights, bias) {
+        this.weights = weights;
+        this.bias = bias;
+    }
+}
+exports.LogisticRegression = LogisticRegression;
 /**
  * Serialize model weights to JSON for persistence
  */

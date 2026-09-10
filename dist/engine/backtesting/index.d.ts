@@ -12,4 +12,9 @@ export declare function runBacktest(historicalFixtures: Array<{
  * Print backtest results in a readable format
  */
 export declare function printBacktestResults(result: BacktestResult): void;
+/**
+ * Main entry point for backtesting CLI
+ */
+declare function main(): Promise<void>;
+export { main };
 //# sourceMappingURL=index.d.ts.map

@@ -7,6 +7,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.runBacktest = runBacktest;
 exports.printBacktestResults = printBacktestResults;
+exports.main = main;
 const config_js_1 = require("../../config.js");
 const math_js_1 = require("../../utils/math.js");
 const prediction_pipeline_js_1 = require("../prediction-pipeline.js");
@@ -168,4 +169,133 @@ function printBacktestResults(result) {
     }
     console.log();
 }
+/**
+ * Generate mock historical fixtures for demo backtesting
+ */
+function generateMockHistoricalFixtures(count = 50) {
+    const fixtures = [];
+    const leagues = [
+        { id: 88, name: 'Eredivisie' },
+        { id: 78, name: 'Bundesliga' },
+        { id: 39, name: 'Premier League' },
+    ];
+    for (let i = 0; i < count; i++) {
+        const league = leagues[i % leagues.length];
+        const fixture = {
+            fixture: {
+                id: i,
+                leagueId: league.id,
+                leagueName: league.name,
+                homeTeam: { id: i * 2, name: `${league.name} Home ${i}` },
+                awayTeam: { id: i * 2 + 1, name: `${league.name} Away ${i}` },
+                date: new Date(Date.now() - (count - i) * 86400000).toISOString(),
+                status: 'finished',
+            },
+            expectedStats: {
+                fixtureId: i,
+                homeTeamStats: {
+                    teamId: i * 2,
+                    teamName: `${league.name} Home ${i}`,
+                    venue: 'home',
+                    matchesPlayed: 15,
+                    goalsScored: 22,
+                    goalsConceded: 16,
+                    avgGoalsScored: 1.5,
+                    avgGoalsConceded: 1.1,
+                    xG: 22.5,
+                    xGA: 16.5,
+                    cleanSheetRate: 0.35,
+                    failedToScoreRate: 0.20,
+                    bttsRate: 0.55,
+                    over25Rate: 0.60,
+                    over15Rate: 0.80,
+                },
+                awayTeamStats: {
+                    teamId: i * 2 + 1,
+                    teamName: `${league.name} Away ${i}`,
+                    venue: 'away',
+                    matchesPlayed: 15,
+                    goalsScored: 18,
+                    goalsConceded: 19,
+                    avgGoalsScored: 1.2,
+                    avgGoalsConceded: 1.3,
+                    xG: 18.0,
+                    xGA: 19.5,
+                    cleanSheetRate: 0.25,
+                    failedToScoreRate: 0.25,
+                    bttsRate: 0.55,
+                    over25Rate: 0.55,
+                    over15Rate: 0.75,
+                },
+                combinedExpectedGoals: 2.7,
+                combinedExpectedConceded: 2.4,
+                fixtureXG: 2.55,
+            },
+            odds: [
+                {
+                    fixtureId: i,
+                    bookmaker: 'DemoBookie',
+                    market: 'over_2.5_goals',
+                    homeOdds: null,
+                    drawOdds: null,
+                    awayOdds: null,
+                    overOdds: 1.85,
+                    underOdds: 1.95,
+                    yesOdds: null,
+                    noOdds: null,
+                    timestamp: new Date().toISOString(),
+                },
+                {
+                    fixtureId: i,
+                    bookmaker: 'DemoBookie',
+                    market: 'btts_yes',
+                    homeOdds: null,
+                    drawOdds: null,
+                    awayOdds: null,
+                    overOdds: null,
+                    underOdds: null,
+                    yesOdds: 1.90,
+                    noOdds: 1.90,
+                    timestamp: new Date().toISOString(),
+                },
+            ],
+            leagueFilterPassed: true,
+            sampleSizeFilterPassed: true,
+            outlierFlags: {
+                isRunawayGiant: false,
+                homeCleanSheetRate: 0.35,
+                awayFailedToScoreRate: 0.25,
+            },
+        };
+        // Simulate realistic goal outcomes
+        const homeGoals = Math.floor(Math.random() * 4);
+        const awayGoals = Math.floor(Math.random() * 3);
+        fixtures.push({ fixture, homeGoals, awayGoals });
+    }
+    return fixtures;
+}
+/**
+ * Main entry point for backtesting CLI
+ */
+async function main() {
+    console.log(`
+╔══════════════════════════════════════════════════════╗
+║     📊 Freebuff Backtesting Harness                 ║
+║     Historical Validation Engine                    ║
+╚══════════════════════════════════════════════════════╝
+  `);
+    logger_js_1.logger.info('Generating mock historical fixtures for demonstration...');
+    const mockFixtures = generateMockHistoricalFixtures(50);
+    logger_js_1.logger.info(`Running backtest on ${mockFixtures.length} historical fixtures...\n`);
+    const result = await runBacktest(mockFixtures);
+    printBacktestResults(result);
+    console.log('✅ Backtest complete!');
+    console.log('Note: This is a demo with mock data.');
+    console.log('Connect to real historical APIs for production backtesting.\n');
+}
+// Run if executed directly
+main().catch(err => {
+    logger_js_1.logger.error(`Fatal error: ${err}`);
+    process.exit(1);
+});
 //# sourceMappingURL=index.js.map
