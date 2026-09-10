@@ -303,6 +303,139 @@ export function trainModel(
 }
 
 /**
+ * Logistic Regression class for multi-sport prediction
+ */
+export class LogisticRegression {
+  private weights: number[] = [];
+  private bias: number = 0;
+  private featureNorms: Array<{ mean: number; std: number }> = [];
+  
+  constructor(private config: { learningRate?: number; epochs?: number; lambda?: number } = {}) {}
+  
+  /**
+   * Train the model on provided data
+   */
+  train(features: number[][], labels: number[]): void {
+    const numFeatures = features[0].length;
+    const learningRate = this.config.learningRate || 0.1;
+    const epochs = this.config.epochs || 500;
+    const lambda = this.config.lambda || 0.01; // L2 regularization
+    
+    // Initialize weights
+    this.weights = new Array(numFeatures).fill(0).map(() => (Math.random() - 0.5) * 0.1);
+    this.bias = 0;
+    
+    // Compute feature normalization
+    for (let f = 0; f < numFeatures; f++) {
+      const values = features.map(row => row[f]);
+      const mean = values.reduce((a, b) => a + b, 0) / values.length;
+      const variance = values.reduce((a, b) => a + (b - mean) ** 2, 0) / values.length;
+      const std = Math.sqrt(variance) || 1;
+      this.featureNorms.push({ mean, std });
+    }
+    
+    // Normalize features
+    const normalizedFeatures = features.map(row => 
+      row.map((val, i) => (val - this.featureNorms[i].mean) / this.featureNorms[i].std)
+    );
+    
+    // Gradient descent with L2 regularization
+    for (let epoch = 0; epoch < epochs; epoch++) {
+      let totalLoss = 0;
+      const gradWeights = new Array(numFeatures).fill(0);
+      let gradBias = 0;
+      
+      for (let i = 0; i < features.length; i++) {
+        const sample = normalizedFeatures[i];
+        const label = labels[i];
+        
+        // Forward pass
+        let z = this.bias;
+        for (let j = 0; j < numFeatures; j++) {
+          z += sample[j] * this.weights[j];
+        }
+        const prediction = 1 / (1 + Math.exp(-z));
+        
+        // Compute error
+        const error = prediction - label;
+        totalLoss += error * error;
+        
+        // Accumulate gradients
+        for (let j = 0; j < numFeatures; j++) {
+          gradWeights[j] += error * sample[j];
+        }
+        gradBias += error;
+      }
+      
+      // Update weights with L2 regularization
+      const n = features.length;
+      for (let j = 0; j < numFeatures; j++) {
+        this.weights[j] -= learningRate * (gradWeights[j] / n + lambda * this.weights[j]);
+      }
+      this.bias -= learningRate * gradBias / n;
+    }
+  }
+  
+  /**
+   * Predict class labels
+   */
+  predict(features: number[][]): number[] {
+    return features.map(row => {
+      const prob = this.predictProbability(row);
+      return prob >= 0.5 ? 1 : 0;
+    });
+  }
+  
+  /**
+   * Predict probabilities
+   */
+  predictProbabilities(features: number[][]): number[] {
+    return features.map(row => this.predictProbability(row));
+  }
+  
+  /**
+   * Predict single probability
+   */
+  private predictProbability(featureRow: number[]): number {
+    // Normalize features
+    const normalized = featureRow.map((val, i) => 
+      (val - this.featureNorms[i].mean) / this.featureNorms[i].std
+    );
+    
+    // Compute z-score
+    let z = this.bias;
+    for (let i = 0; i < this.weights.length; i++) {
+      z += normalized[i] * this.weights[i];
+    }
+    
+    // Sigmoid
+    return 1 / (1 + Math.exp(-z));
+  }
+
+  /**
+   * Predict probabilities (alias for predictProbabilities)
+   */
+  predictProb(features: number[][]): number[] {
+    return this.predictProbabilities(features);
+  }
+
+  /**
+   * Get weights (for ensemble creation)
+   */
+  getWeights(): number[] {
+    return [...this.weights];
+  }
+
+  /**
+   * Set weights (for ensemble creation)
+   */
+  setWeights(weights: number[], bias: number): void {
+    this.weights = weights;
+    this.bias = bias;
+  }
+}
+
+/**
  * Serialize model weights to JSON for persistence
  */
 export function serializeModel(model: ModelWeights): string {

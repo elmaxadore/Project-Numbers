@@ -69,6 +69,48 @@ export declare function trainModel(trainingData: Array<{
     label: number;
 }>, learningRate?: number, epochs?: number, label?: string): ModelWeights;
 /**
+ * Logistic Regression class for multi-sport prediction
+ */
+export declare class LogisticRegression {
+    private config;
+    private weights;
+    private bias;
+    private featureNorms;
+    constructor(config?: {
+        learningRate?: number;
+        epochs?: number;
+        lambda?: number;
+    });
+    /**
+     * Train the model on provided data
+     */
+    train(features: number[][], labels: number[]): void;
+    /**
+     * Predict class labels
+     */
+    predict(features: number[][]): number[];
+    /**
+     * Predict probabilities
+     */
+    predictProbabilities(features: number[][]): number[];
+    /**
+     * Predict single probability
+     */
+    private predictProbability;
+    /**
+     * Predict probabilities (alias for predictProbabilities)
+     */
+    predictProb(features: number[][]): number[];
+    /**
+     * Get weights (for ensemble creation)
+     */
+    getWeights(): number[];
+    /**
+     * Set weights (for ensemble creation)
+     */
+    setWeights(weights: number[], bias: number): void;
+}
+/**
  * Serialize model weights to JSON for persistence
  */
 export declare function serializeModel(model: ModelWeights): string;
