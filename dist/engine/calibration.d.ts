@@ -30,6 +30,23 @@ export declare function isotonicCalibration(predictions: number[], actuals: numb
  */
 export declare function calibrateProbability(rawProbability: number, calibrationBins: CalibrationBin[]): number;
 /**
+ * IsotonicCalibrator class for probability calibration
+ * Fits a monotonic function to map raw predictions to calibrated probabilities
+ */
+export declare class IsotonicCalibrator {
+    private points;
+    /**
+     * Fit the calibrator on training data
+     */
+    fit(predictions: number[], actuals: number[]): void;
+    private pava;
+    /**
+     * Calibrate raw predictions
+     */
+    calibrate(predictions: number[]): number[];
+    private interpolate;
+}
+/**
  * Analyze model calibration and log results
  */
 export declare function analyzeCalibration(result: CalibrationResult): void;

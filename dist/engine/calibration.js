@@ -5,6 +5,7 @@
 // Critical for betting: calibration > accuracy
 // ============================================================
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.IsotonicCalibrator = void 0;
 exports.isotonicCalibration = isotonicCalibration;
 exports.calibrateProbability = calibrateProbability;
 exports.analyzeCalibration = analyzeCalibration;
@@ -98,6 +99,86 @@ function calibrateProbability(rawProbability, calibrationBins) {
     });
     return nearest.actualFrequency;
 }
+/**
+ * IsotonicCalibrator class for probability calibration
+ * Fits a monotonic function to map raw predictions to calibrated probabilities
+ */
+class IsotonicCalibrator {
+    points = [];
+    /**
+     * Fit the calibrator on training data
+     */
+    fit(predictions, actuals) {
+        if (predictions.length !== actuals.length) {
+            throw new Error('Predictions and actuals must have same length');
+        }
+        // Sort by prediction value
+        const sorted = predictions.map((p, i) => ({ x: p, y: actuals[i] }))
+            .sort((a, b) => a.x - b.x);
+        // Pool adjacent violators algorithm (PAVA) for isotonic regression
+        this.points = this.pava(sorted);
+    }
+    pava(data) {
+        if (data.length === 0)
+            return [];
+        // Initialize blocks
+        const blocks = data.map(p => ({ x: [p.x], ySum: p.y, count: 1 }));
+        // Merge adjacent blocks that violate monotonicity
+        let changed = true;
+        while (changed) {
+            changed = false;
+            for (let i = 0; i < blocks.length - 1; i++) {
+                const avg1 = blocks[i].ySum / blocks[i].count;
+                const avg2 = blocks[i + 1].ySum / blocks[i + 1].count;
+                if (avg1 > avg2) {
+                    // Merge blocks
+                    blocks[i].x = [...blocks[i].x, ...blocks[i + 1].x];
+                    blocks[i].ySum += blocks[i + 1].ySum;
+                    blocks[i].count += blocks[i + 1].count;
+                    blocks.splice(i + 1, 1);
+                    changed = true;
+                    break;
+                }
+            }
+        }
+        // Convert back to points
+        const result = [];
+        for (const block of blocks) {
+            const avgX = block.x.reduce((a, b) => a + b, 0) / block.x.length;
+            const avgY = block.ySum / block.count;
+            result.push({ x: avgX, y: avgY });
+        }
+        return result;
+    }
+    /**
+     * Calibrate raw predictions
+     */
+    calibrate(predictions) {
+        if (this.points.length === 0) {
+            return predictions;
+        }
+        return predictions.map(p => this.interpolate(p));
+    }
+    interpolate(x) {
+        // Find surrounding points
+        let left = this.points[0];
+        let right = this.points[this.points.length - 1];
+        for (let i = 0; i < this.points.length - 1; i++) {
+            if (this.points[i].x <= x && this.points[i + 1].x >= x) {
+                left = this.points[i];
+                right = this.points[i + 1];
+                break;
+            }
+        }
+        // Linear interpolation
+        if (right.x === left.x) {
+            return left.y;
+        }
+        const t = (x - left.x) / (right.x - left.x);
+        return left.y + t * (right.y - left.y);
+    }
+}
+exports.IsotonicCalibrator = IsotonicCalibrator;
 /**
  * Analyze model calibration and log results
  */

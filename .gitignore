@@ -1,6 +1,7 @@
 ```
 # Build artifacts
 dist/
+build/
 *.js
 *.js.map
 *.d.ts
@@ -14,29 +15,38 @@ node_modules/
 .env.local
 *.env.*
 
-# Logs
-*.log
-
-# Coverage
-coverage/
-htmlcov/
-.coverage
-
-# IDE
+# Editors
 .vscode/
 .idea/
+
+# Logs and temp files
+*.log
+*.tmp
 *.swp
-*.swo
 
 # Python
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
-.Python
-*.so
 
-# Compressed
+# Java/Scala
+*.class
+*.jar
+*.war
+*.ear
+target/
+.gradle/
+
+# C/C++
+*.o
+*.a
+*.so
+*.dll
+*.exe
+*.out
+
+# Compression
 *.zip
 *.gz
 *.tar
@@ -55,16 +65,8 @@ __pycache__/
 *.Z
 *.lz
 *.lzo
-*.tar.gz
-*.tar.bz2
-*.tar.xz
-*.tar.zst
 
 # System
 .DS_Store
 Thumbs.db
-
-# Temp files
-*.tmp
-*~
 ```
