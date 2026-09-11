@@ -1,23 +1,14 @@
-"use strict";
 // ============================================================
 // Phase 2: Logistic Regression Prediction Engine
 // Predicts P(Over 2.5 Goals) and P(BTTS) using xG features
 // ============================================================
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.LogisticRegression = exports.DEFAULT_BTTS_WEIGHTS = exports.DEFAULT_O25_WEIGHTS = void 0;
-exports.normalizeFeatures = normalizeFeatures;
-exports.extractFeatures = extractFeatures;
-exports.predict = predict;
-exports.trainModel = trainModel;
-exports.serializeModel = serializeModel;
-exports.deserializeModel = deserializeModel;
-const math_js_1 = require("../utils/math.js");
-const logger_js_1 = require("../utils/logger.js");
+import { sigmoid, zScore } from '../utils/math.js';
+import { logger } from '../utils/logger.js';
 /**
  * Default model weights based on research findings
  * These are informed by the literature on xG-based football prediction
  */
-exports.DEFAULT_O25_WEIGHTS = {
+export const DEFAULT_O25_WEIGHTS = {
     weights: [
         0.42, // homeTeamXGHome (strongest predictor)
         -0.18, // homeTeamXGAHome
@@ -57,7 +48,7 @@ exports.DEFAULT_O25_WEIGHTS = {
         trainedAt: 'default-v2-improved',
     },
 };
-exports.DEFAULT_BTTS_WEIGHTS = {
+export const DEFAULT_BTTS_WEIGHTS = {
     weights: [
         0.35, // homeTeamXGHome
         0.12, // homeTeamXGAHome (conceding xG helps BTTS)
@@ -100,16 +91,16 @@ exports.DEFAULT_BTTS_WEIGHTS = {
 /**
  * Normalize features using z-score normalization
  */
-function normalizeFeatures(features, norms) {
+export function normalizeFeatures(features, norms) {
     return features.map((val, i) => {
         const norm = norms[i] || { mean: 0, std: 1 };
-        return (0, math_js_1.zScore)(val, norm.mean, norm.std);
+        return zScore(val, norm.mean, norm.std);
     });
 }
 /**
  * Extract a feature vector from match data
  */
-function extractFeatures(homeXG, homeXGA, awayXG, awayXGA, homeCSRate, awayFTSRate, leagueId, homeAvgGoals, homeAvgConceded, awayAvgGoals, awayAvgConceded) {
+export function extractFeatures(homeXG, homeXGA, awayXG, awayXGA, homeCSRate, awayFTSRate, leagueId, homeAvgGoals, homeAvgConceded, awayAvgGoals, awayAvgConceded) {
     return [
         homeXG,
         homeXGA,
@@ -129,7 +120,7 @@ function extractFeatures(homeXG, homeXGA, awayXG, awayXGA, homeCSRate, awayFTSRa
 /**
  * Predict probability using a logistic regression model
  */
-function predict(features, model) {
+export function predict(features, model) {
     if (features.length !== model.weights.length) {
         throw new Error(`Feature mismatch: ${features.length} features vs ${model.weights.length} weights`);
     }
@@ -141,13 +132,13 @@ function predict(features, model) {
         z += normalized[i] * model.weights[i];
     }
     // Apply sigmoid to get probability
-    return (0, math_js_1.sigmoid)(z);
+    return sigmoid(z);
 }
 /**
  * Train a logistic regression model using gradient descent
  * This implements the actual learning process from data
  */
-function trainModel(trainingData, learningRate = 0.01, epochs = 1000, label = 'Unknown') {
+export function trainModel(trainingData, learningRate = 0.01, epochs = 1000, label = 'Unknown') {
     const numFeatures = trainingData[0].features.length;
     // Initialize weights to small random values
     const weights = new Array(numFeatures).fill(0).map(() => (Math.random() - 0.5) * 0.1);
@@ -177,7 +168,7 @@ function trainModel(trainingData, learningRate = 0.01, epochs = 1000, label = 'U
             for (let i = 0; i < numFeatures; i++) {
                 z += sample.features[i] * weights[i];
             }
-            const prediction = (0, math_js_1.sigmoid)(z);
+            const prediction = sigmoid(z);
             // Compute error
             const error = prediction - sample.label;
             totalLoss += error * error;
@@ -196,7 +187,7 @@ function trainModel(trainingData, learningRate = 0.01, epochs = 1000, label = 'U
         // Log progress every 100 epochs
         if (epoch % 100 === 0) {
             const avgLoss = totalLoss / n;
-            logger_js_1.logger.debug(`Epoch ${epoch}: avg_loss=${avgLoss.toFixed(4)}`);
+            logger.debug(`Epoch ${epoch}: avg_loss=${avgLoss.toFixed(4)}`);
         }
     }
     // Calculate accuracy on training data
@@ -206,12 +197,12 @@ function trainModel(trainingData, learningRate = 0.01, epochs = 1000, label = 'U
         for (let i = 0; i < numFeatures; i++) {
             z += sample.features[i] * weights[i];
         }
-        const pred = (0, math_js_1.sigmoid)(z) >= 0.5 ? 1 : 0;
+        const pred = sigmoid(z) >= 0.5 ? 1 : 0;
         if (pred === sample.label)
             correct++;
     }
     const accuracy = correct / trainingData.length;
-    logger_js_1.logger.success(`Model "${label}" trained: accuracy=${(accuracy * 100).toFixed(1)}%, samples=${trainingData.length}`);
+    logger.success(`Model "${label}" trained: accuracy=${(accuracy * 100).toFixed(1)}%, samples=${trainingData.length}`);
     return {
         weights,
         bias,
@@ -228,7 +219,7 @@ function trainModel(trainingData, learningRate = 0.01, epochs = 1000, label = 'U
 /**
  * Logistic Regression class for multi-sport prediction
  */
-class LogisticRegression {
+export class LogisticRegression {
     config;
     weights = [];
     bias = 0;
@@ -337,17 +328,16 @@ class LogisticRegression {
         this.bias = bias;
     }
 }
-exports.LogisticRegression = LogisticRegression;
 /**
  * Serialize model weights to JSON for persistence
  */
-function serializeModel(model) {
+export function serializeModel(model) {
     return JSON.stringify(model, null, 2);
 }
 /**
  * Deserialize model weights from JSON
  */
-function deserializeModel(json) {
+export function deserializeModel(json) {
     return JSON.parse(json);
 }
 //# sourceMappingURL=logistic-regression.js.map

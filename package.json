@@ -2,6 +2,7 @@
   "name": "freebuff-football-betting",
   "version": "1.0.0",
   "description": "Autonomous data-driven football betting system with probabilistic modeling",
+  "type": "module",
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
@@ -9,7 +10,8 @@
     "backtest": "node dist/engine/backtesting/index.js",
     "typecheck": "tsc --noEmit",
     "train": "node dist/train-advanced-models.js",
-    "collect-data": "node dist/data/real-data-collector.js"
+    "collect-data": "node dist/data/real-data-collector.js",
+    "bot:telegram": "node dist/bot/telegram-bot.js"
   },
   "dependencies": {
     "axios": "^1.20.0",

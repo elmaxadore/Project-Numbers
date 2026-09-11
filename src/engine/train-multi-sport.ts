@@ -1,6 +1,6 @@
-import { multiSportGenerator } from '../data/multi-sport-generator';
-import { featureExtractor, labelGenerator, PredictionTargets } from './multi-sport-model';
-import { LogisticRegression } from './logistic-regression';
+import { multiSportGenerator } from '../data/multi-sport-generator.js';
+import { featureExtractor, labelGenerator, PredictionTargets } from './multi-sport-model.js';
+import { LogisticRegression } from './logistic-regression.js';
 
 /**
  * Multi-Sport Training and Evaluation Script
