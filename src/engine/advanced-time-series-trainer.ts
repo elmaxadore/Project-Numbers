@@ -12,11 +12,11 @@
  * - Ensemble of Logistic Regression, Random Forest, and Gradient Boosting
  */
 
-import { RealDataCollector, HistoricalMatch } from '../data/real-data-collector';
-import { MultiSportFeatureExtractor } from './multi-sport-model';
-import { LogisticRegression } from './logistic-regression';
-import { RandomForestClassifier, GradientBoostingClassifier } from './ensemble-models';
-import { IsotonicCalibrator } from './calibration';
+import { RealDataCollector, HistoricalMatch } from '../data/real-data-collector.js';
+import { MultiSportFeatureExtractor } from './multi-sport-model.js';
+import { LogisticRegression } from './logistic-regression.js';
+import { RandomForestClassifier, GradientBoostingClassifier } from './ensemble-models.js';
+import { IsotonicCalibrator } from './calibration.js';
 
 interface CrossValidationResult {
   fold: number;

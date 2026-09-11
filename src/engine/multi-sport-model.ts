@@ -1,4 +1,4 @@
-import { MultiSportMatch, multiSportGenerator } from '../data/multi-sport-generator';
+import { MultiSportMatch, multiSportGenerator } from '../data/multi-sport-generator.js';
 
 /**
  * Feature extraction for multi-sport prediction models

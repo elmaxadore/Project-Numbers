@@ -1,6 +1,6 @@
-import { RealDataCollector, HistoricalMatch } from './data/real-data-collector';
-import { MultiSportFeatureExtractor, SportFeatures } from './engine/multi-sport-model';
-import { LogisticRegression, normalizeFeatures } from './engine/logistic-regression';
+import { RealDataCollector, HistoricalMatch } from './data/real-data-collector.js';
+import { MultiSportFeatureExtractor, SportFeatures } from './engine/multi-sport-model.js';
+import { LogisticRegression, normalizeFeatures } from './engine/logistic-regression.js';
 
 /**
  * Train prediction models using REAL scraped data

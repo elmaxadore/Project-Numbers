@@ -1,0 +1,23 @@
+{
+  "name": "@your-username/sports-predictor",
+  "description": "AI-powered sports prediction bot with Telegram integration",
+  "private": false,
+  "keywords": [
+    "sports",
+    "prediction",
+    "machine-learning",
+    "telegram-bot",
+    "betting",
+    "football",
+    "basketball",
+    "baseball"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/sports-predictor.git"
+  },
+  "homepage": "https://github.com/your-username/sports-predictor#readme",
+  "bugs": {
+    "url": "https://github.com/your-username/sports-predictor/issues"
+  }
+}

@@ -1,25 +1,19 @@
-"use strict";
 // ============================================================
 // Data Ingestion Pipeline
 // Fetches fixtures and builds data packages for prediction
 // ============================================================
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.passesLeagueFilter = passesLeagueFilter;
-exports.fetchUpcomingFixtures = fetchUpcomingFixtures;
-exports.buildFixtureExpectedStats = buildFixtureExpectedStats;
-exports.buildFixtureDataPackage = buildFixtureDataPackage;
-const logger_js_1 = require("../utils/logger.js");
-const leagues_js_1 = require("../models/leagues.js");
-const config_js_1 = require("../config.js");
+import { logger } from '../utils/logger.js';
+import { KNOWN_LEAGUES } from '../models/leagues.js';
+import { CONFIG } from '../config.js';
 /**
  * Check if a league passes the filter criteria
  */
-function passesLeagueFilter(avgGoals, bttsRate) {
-    if (avgGoals < config_js_1.CONFIG.minAvgGoals) {
-        return { passes: false, reason: `avgGoals ${avgGoals.toFixed(2)} < ${config_js_1.CONFIG.minAvgGoals}` };
+export function passesLeagueFilter(avgGoals, bttsRate) {
+    if (avgGoals < CONFIG.minAvgGoals) {
+        return { passes: false, reason: `avgGoals ${avgGoals.toFixed(2)} < ${CONFIG.minAvgGoals}` };
     }
-    if (bttsRate < config_js_1.CONFIG.minBttsRate) {
-        return { passes: false, reason: `bttsRate ${bttsRate.toFixed(2)} < ${config_js_1.CONFIG.minBttsRate}` };
+    if (bttsRate < CONFIG.minBttsRate) {
+        return { passes: false, reason: `bttsRate ${bttsRate.toFixed(2)} < ${CONFIG.minBttsRate}` };
     }
     return { passes: true };
 }
@@ -27,12 +21,12 @@ function passesLeagueFilter(avgGoals, bttsRate) {
  * Fetch upcoming fixtures for given leagues
  * In production, this would call API-Sports or similar
  */
-async function fetchUpcomingFixtures(leagueIds, season) {
-    logger_js_1.logger.info(`Fetching upcoming fixtures for ${leagueIds.length} leagues...`);
+export async function fetchUpcomingFixtures(leagueIds, season) {
+    logger.info(`Fetching upcoming fixtures for ${leagueIds.length} leagues...`);
     // Demo mode: generate mock fixtures
     const mockFixtures = [];
     for (const leagueId of leagueIds.slice(0, 3)) {
-        const league = leagues_js_1.KNOWN_LEAGUES.find(l => l.id === leagueId);
+        const league = KNOWN_LEAGUES.find(l => l.id === leagueId);
         if (!league)
             continue;
         // Generate 5 mock fixtures per league
@@ -48,7 +42,7 @@ async function fetchUpcomingFixtures(leagueIds, season) {
             });
         }
     }
-    logger_js_1.logger.info(`Found ${mockFixtures.length} upcoming fixtures`);
+    logger.info(`Found ${mockFixtures.length} upcoming fixtures`);
     return mockFixtures;
 }
 /**
@@ -82,7 +76,7 @@ function buildTeamVenueStats(teamId, teamName, venue, isRunawayGiant = false) {
 /**
  * Build expected stats for a fixture
  */
-function buildFixtureExpectedStats(fixture, homeIsRunaway = false, awayIsRunaway = false) {
+export function buildFixtureExpectedStats(fixture, homeIsRunaway = false, awayIsRunaway = false) {
     const homeStats = buildTeamVenueStats(fixture.homeTeam.id, fixture.homeTeam.name, 'home', homeIsRunaway);
     const awayStats = buildTeamVenueStats(fixture.awayTeam.id, fixture.awayTeam.name, 'away', awayIsRunaway);
     const combinedExpectedGoals = homeStats.xG / homeStats.matchesPlayed + awayStats.xG / awayStats.matchesPlayed;
@@ -101,7 +95,7 @@ function buildFixtureExpectedStats(fixture, homeIsRunaway = false, awayIsRunaway
 /**
  * Build complete data package for a fixture
  */
-async function buildFixtureDataPackage(fixture, season, topRankedTeamIds) {
+export async function buildFixtureDataPackage(fixture, season, topRankedTeamIds) {
     try {
         // Check for outlier teams
         const homeIsRunaway = topRankedTeamIds.has(fixture.homeTeam.id);
@@ -135,7 +129,7 @@ async function buildFixtureDataPackage(fixture, season, topRankedTeamIds) {
                 timestamp: new Date().toISOString(),
             }];
         // Check league filter
-        const league = leagues_js_1.KNOWN_LEAGUES.find(l => l.id === fixture.leagueId);
+        const league = KNOWN_LEAGUES.find(l => l.id === fixture.leagueId);
         const leagueFilterPassed = league ?
             passesLeagueFilter(league.avgGoalsPerMatch, league.bttsRate).passes : false;
         // Sample size check (always passes in demo)
@@ -154,7 +148,7 @@ async function buildFixtureDataPackage(fixture, season, topRankedTeamIds) {
         };
     }
     catch (error) {
-        logger_js_1.logger.error(`Failed to build data package for fixture ${fixture.id}: ${error}`);
+        logger.error(`Failed to build data package for fixture ${fixture.id}: ${error}`);
         return null;
     }
 }

@@ -1,0 +1,52 @@
+name: Daily Prediction Bot
+
+on:
+  schedule:
+    # Runs every day at 08:00 UTC (adjust time as needed)
+    - cron: '0 8 * * *'
+  workflow_dispatch: # Allows manual trigger
+
+jobs:
+  predict-and-notify:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Build Project
+        run: npm run build
+
+      - name: Download Latest Model & Data
+        run: |
+          # Create data directory
+          mkdir -p ./data/cache
+          
+          # Download latest release assets (model and data)
+          # This assumes you upload model-latest.bin and all-sports-data.json to GitHub Releases
+          gh release download latest --repo ${{ github.repository }} --pattern "*.bin" --dir ./data || echo "No binary releases found, using cached model"
+          gh release download latest --repo ${{ github.repository }} --pattern "*.json" --dir ./data/cache || echo "No data releases found, scraping fresh data"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run Prediction Bot
+        run: node dist/bot/telegram-bot.js
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+
+      - name: Upload Updated Model (if retrained)
+        if: always() # Try to upload even if prediction failed (for debugging)
+        run: |
+          # If your bot retrains or updates the model, upload it back to releases
+          # This is optional and depends on your workflow
+          echo "Model update step placeholder"

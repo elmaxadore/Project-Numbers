@@ -1,21 +1,15 @@
-"use strict";
 // ============================================================
 // Model Calibration
 // Ensures predicted probabilities match real-world frequencies
 // Critical for betting: calibration > accuracy
 // ============================================================
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.IsotonicCalibrator = void 0;
-exports.isotonicCalibration = isotonicCalibration;
-exports.calibrateProbability = calibrateProbability;
-exports.analyzeCalibration = analyzeCalibration;
-const logger_js_1 = require("../utils/logger.js");
+import { logger } from '../utils/logger.js';
 /**
  * Perform isotonic calibration on model predictions
  * Maps raw model outputs to calibrated probabilities using
  * a monotonic regression approach
  */
-function isotonicCalibration(predictions, actuals, numBins = 10) {
+export function isotonicCalibration(predictions, actuals, numBins = 10) {
     if (predictions.length !== actuals.length) {
         throw new Error('Predictions and actuals must have the same length');
     }
@@ -77,7 +71,7 @@ function isotonicCalibration(predictions, actuals, numBins = 10) {
  * Apply calibration mapping to a raw prediction
  * Uses piecewise linear interpolation from calibration bins
  */
-function calibrateProbability(rawProbability, calibrationBins) {
+export function calibrateProbability(rawProbability, calibrationBins) {
     if (calibrationBins.length === 0)
         return rawProbability;
     // Find the bin that contains this probability
@@ -103,7 +97,7 @@ function calibrateProbability(rawProbability, calibrationBins) {
  * IsotonicCalibrator class for probability calibration
  * Fits a monotonic function to map raw predictions to calibrated probabilities
  */
-class IsotonicCalibrator {
+export class IsotonicCalibrator {
     points = [];
     /**
      * Fit the calibrator on training data
@@ -178,21 +172,20 @@ class IsotonicCalibrator {
         return left.y + t * (right.y - left.y);
     }
 }
-exports.IsotonicCalibrator = IsotonicCalibrator;
 /**
  * Analyze model calibration and log results
  */
-function analyzeCalibration(result) {
-    logger_js_1.logger.info('=== Calibration Analysis ===');
-    logger_js_1.logger.info(`Brier Score: ${result.brierScore.toFixed(4)} (lower is better, 0 = perfect)`);
-    logger_js_1.logger.info(`Expected Calibration Error: ${(result.expectedCalibrationError * 100).toFixed(2)}%`);
-    logger_js_1.logger.info(`Maximum Calibration Error: ${(result.maximumCalibrationError * 100).toFixed(2)}%`);
-    logger_js_1.logger.info(`Well Calibrated: ${result.isWellCalibrated ? '✅ Yes' : '❌ No (needs recalibration)'}`);
-    logger_js_1.logger.info('\nCalibration Bins:');
+export function analyzeCalibration(result) {
+    logger.info('=== Calibration Analysis ===');
+    logger.info(`Brier Score: ${result.brierScore.toFixed(4)} (lower is better, 0 = perfect)`);
+    logger.info(`Expected Calibration Error: ${(result.expectedCalibrationError * 100).toFixed(2)}%`);
+    logger.info(`Maximum Calibration Error: ${(result.maximumCalibrationError * 100).toFixed(2)}%`);
+    logger.info(`Well Calibrated: ${result.isWellCalibrated ? '✅ Yes' : '❌ No (needs recalibration)'}`);
+    logger.info('\nCalibration Bins:');
     for (const bin of result.bins) {
         const gap = Math.abs(bin.predictedMean - bin.actualFrequency);
         const indicator = gap < 0.05 ? '✅' : gap < 0.10 ? '⚠️' : '❌';
-        logger_js_1.logger.info(`  ${indicator} [${(bin.predictedMean * 100).toFixed(1)}%] → actual ${(bin.actualFrequency * 100).toFixed(1)}% (n=${bin.count})`);
+        logger.info(`  ${indicator} [${(bin.predictedMean * 100).toFixed(1)}%] → actual ${(bin.actualFrequency * 100).toFixed(1)}% (n=${bin.count})`);
     }
 }
 //# sourceMappingURL=calibration.js.map

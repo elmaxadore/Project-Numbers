@@ -1,53 +1,48 @@
-"use strict";
 // ============================================================
 // OddsPapi Client
 // Free tier: 250 requests/month
 // Use for: Historical odds data and Closing Line Value analysis
 // ============================================================
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.getHistoricalOdds = getHistoricalOdds;
-exports.parseOddsPapi = parseOddsPapi;
-exports.getMonthlyRequestCount = getMonthlyRequestCount;
-const config_js_1 = require("../config.js");
-const logger_js_1 = require("../utils/logger.js");
+import { CONFIG } from '../config.js';
+import { logger } from '../utils/logger.js';
 const BASE_URL = 'https://api.odds.papi.io/v1';
 let requestCount = 0;
 const MONTHLY_LIMIT = 250;
 async function apiRequest(endpoint, params = {}) {
     if (requestCount >= MONTHLY_LIMIT) {
-        logger_js_1.logger.warn(`OddsPapi monthly limit reached (${MONTHLY_LIMIT} requests). Skipping.`);
+        logger.warn(`OddsPapi monthly limit reached (${MONTHLY_LIMIT} requests). Skipping.`);
         return null;
     }
-    if (!config_js_1.CONFIG.oddsPapiKey) {
-        logger_js_1.logger.warn('ODDS_PAPI_KEY not configured. Skipping OddsPapi request.');
+    if (!CONFIG.oddsPapiKey) {
+        logger.warn('ODDS_PAPI_KEY not configured. Skipping OddsPapi request.');
         return null;
     }
     const queryString = new URLSearchParams(params).toString();
-    const url = `${BASE_URL}${endpoint}?apikey=${config_js_1.CONFIG.oddsPapiKey}${queryString ? '&' + queryString : ''}`;
+    const url = `${BASE_URL}${endpoint}?apikey=${CONFIG.oddsPapiKey}${queryString ? '&' + queryString : ''}`;
     try {
         const response = await fetch(url);
         requestCount++;
         if (!response.ok) {
-            logger_js_1.logger.error(`OddsPapi error: ${response.status} ${response.statusText}`);
+            logger.error(`OddsPapi error: ${response.status} ${response.statusText}`);
             return null;
         }
         return await response.json();
     }
     catch (err) {
-        logger_js_1.logger.error(`OddsPapi request failed: ${err}`);
+        logger.error(`OddsPapi request failed: ${err}`);
         return null;
     }
 }
 /**
  * Get historical odds for a specific match
  */
-async function getHistoricalOdds(fixtureId) {
+export async function getHistoricalOdds(fixtureId) {
     return apiRequest(`/matches/${fixtureId}/odds`);
 }
 /**
  * Parse OddsPapi odds into our MarketOdds format
  */
-function parseOddsPapi(match, fixtureId, market) {
+export function parseOddsPapi(match, fixtureId, market) {
     const results = [];
     for (const [bookmaker, markets] of Object.entries(match.odds)) {
         const marketKey = mapMarketName(market);
@@ -100,7 +95,7 @@ function mapMarketName(market) {
 /**
  * Get the number of API requests used this month
  */
-function getMonthlyRequestCount() {
+export function getMonthlyRequestCount() {
     return requestCount;
 }
 //# sourceMappingURL=odds-papi.js.map

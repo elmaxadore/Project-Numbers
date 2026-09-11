@@ -1,68 +1,61 @@
-"use strict";
 // ============================================================
 // ballers (Big Balls) API Client
 // Free tier: 1,000 requests/day
 // Use for: Live data with Expected Goals (xG) metrics
 // ============================================================
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.getTeamSeasonStats = getTeamSeasonStats;
-exports.getUpcomingFixtures = getUpcomingFixtures;
-exports.getMatchDetails = getMatchDetails;
-exports.toTeamVenueStats = toTeamVenueStats;
-exports.getRequestCount = getRequestCount;
-const config_js_1 = require("../config.js");
-const logger_js_1 = require("../utils/logger.js");
+import { CONFIG } from '../config.js';
+import { logger } from '../utils/logger.js';
 const BASE_URL = 'https://api.bfrds.com/v2';
 let requestCount = 0;
 const DAILY_LIMIT = 1000;
 async function apiRequest(endpoint, params = {}) {
     if (requestCount >= DAILY_LIMIT) {
-        logger_js_1.logger.warn(`ballers daily limit reached (${DAILY_LIMIT} requests). Skipping.`);
+        logger.warn(`ballers daily limit reached (${DAILY_LIMIT} requests). Skipping.`);
         return null;
     }
-    if (!config_js_1.CONFIG.ballersKey) {
-        logger_js_1.logger.warn('BALLERS_KEY not configured. Skipping ballers request.');
+    if (!CONFIG.ballersKey) {
+        logger.warn('BALLERS_KEY not configured. Skipping ballers request.');
         return null;
     }
     const queryString = new URLSearchParams(params).toString();
-    const url = `${BASE_URL}${endpoint}?api_token=${config_js_1.CONFIG.ballersKey}${queryString ? '&' + queryString : ''}`;
+    const url = `${BASE_URL}${endpoint}?api_token=${CONFIG.ballersKey}${queryString ? '&' + queryString : ''}`;
     try {
         const response = await fetch(url);
         requestCount++;
         if (!response.ok) {
-            logger_js_1.logger.error(`ballers error: ${response.status} ${response.statusText}`);
+            logger.error(`ballers error: ${response.status} ${response.statusText}`);
             return null;
         }
         return await response.json();
     }
     catch (err) {
-        logger_js_1.logger.error(`ballers request failed: ${err}`);
+        logger.error(`ballers request failed: ${err}`);
         return null;
     }
 }
 /**
  * Get team season statistics with xG data
  */
-async function getTeamSeasonStats(teamId, leagueId, season) {
+export async function getTeamSeasonStats(teamId, leagueId, season) {
     return apiRequest(`/teams/${teamId}/season/${season}`, { league: String(leagueId) });
 }
 /**
  * Get upcoming fixtures with xG predictions
  */
-async function getUpcomingFixtures(leagueId, page = 1) {
+export async function getUpcomingFixtures(leagueId, page = 1) {
     const result = await apiRequest(`/fixtures/league/${leagueId}`, { page: String(page), sort: 'start' });
     return result?.data || [];
 }
 /**
  * Get match details with full xG breakdown
  */
-async function getMatchDetails(matchId) {
+export async function getMatchDetails(matchId) {
     return apiRequest(`/fixtures/${matchId}`);
 }
 /**
  * Convert ballers stats to our TeamVenueStats format
  */
-function toTeamVenueStats(stats, venue) {
+export function toTeamVenueStats(stats, venue) {
     const venueStats = venue === 'home' ? stats.home : stats.away;
     const totalStats = stats.statistics;
     const venueData = venueStats || totalStats;
@@ -89,7 +82,7 @@ function toTeamVenueStats(stats, venue) {
 /**
  * Get the number of API requests used today
  */
-function getRequestCount() {
+export function getRequestCount() {
     return requestCount;
 }
 //# sourceMappingURL=ballers.js.map
