@@ -136,8 +136,11 @@ export class RealDataCollector {
       { code: 'N1', name: 'Eredivisie' }
     ];
 
-    // Get last 3 seasons
-    const seasons = ['2023-24', '2022-23', '2021-22'];
+    // Get last 10 seasons (2014-2024)
+    const seasons = [
+      '2023-24', '2022-23', '2021-22', '2020-21', '2019-20',
+      '2018-19', '2017-18', '2016-17', '2015-16', '2014-15'
+    ];
 
     for (const league of leagues) {
       for (const season of seasons) {
@@ -225,8 +228,8 @@ export class RealDataCollector {
 
     const matches: HistoricalMatch[] = [];
     
-    // Basketball Reference provides box scores
-    const years = [2024, 2023, 2022];
+    // Basketball Reference provides box scores - 10 seasons
+    const years = [2024, 2023, 2022, 2021, 2020, 2019, 2018, 2017, 2016, 2015];
 
     for (const year of years) {
       try {
@@ -287,7 +290,8 @@ export class RealDataCollector {
 
     const matches: HistoricalMatch[] = [];
     
-    const years = [2023, 2022, 2021];
+    // MLB - 10 seasons
+    const years = [2023, 2022, 2021, 2020, 2019, 2018, 2017, 2016, 2015, 2014];
     const teams = [
       'New York Yankees', 'Boston Red Sox', 'LA Dodgers', 'Houston Astros',
       'Atlanta Braves', 'Philadelphia Phillies', 'Tampa Bay Rays', 'Toronto Blue Jays'
@@ -341,7 +345,8 @@ export class RealDataCollector {
 
     const matches: HistoricalMatch[] = [];
     
-    const years = [2024, 2023, 2022];
+    // NHL - 10 seasons
+    const years = [2024, 2023, 2022, 2021, 2020, 2019, 2018, 2017, 2016, 2015];
     const teams = [
       'Boston Bruins', 'Colorado Avalanche', 'Carolina Hurricanes', 'Vegas Golden Knights',
       'Edmonton Oilers', 'Toronto Maple Leafs', 'New Jersey Devils', 'Dallas Stars'
@@ -389,6 +394,10 @@ export class RealDataCollector {
    * Helper to parse various date formats
    */
   private parseDate(dateStr: string): Date {
+    if (!dateStr || typeof dateStr !== 'string') {
+      return new Date(); // Return current date as fallback
+    }
+    
     // Handle DD/MM/YY format (common in European football data)
     const parts = dateStr.split('/');
     if (parts.length === 3) {
@@ -400,11 +409,21 @@ export class RealDataCollector {
       if (year < 50) year += 2000;
       else if (year < 100) year += 1900;
       
-      return new Date(year, month, day);
+      const parsed = new Date(year, month, day);
+      if (!isNaN(parsed.getTime())) {
+        return parsed;
+      }
     }
     
     // Try standard parsing
-    return new Date(dateStr);
+    const parsed = new Date(dateStr);
+    if (!isNaN(parsed.getTime())) {
+      return parsed;
+    }
+    
+    // Fallback to current date
+    console.warn(`Could not parse date: "${dateStr}", using current date`);
+    return new Date();
   }
 
   /**
