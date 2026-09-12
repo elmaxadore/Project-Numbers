@@ -256,14 +256,15 @@ export async function findBestBet(
   fixtures: TodaysFixture[],
   o25Model: ModelWeights = DEFAULT_O25_WEIGHTS,
   bttsModel: ModelWeights = DEFAULT_BTTS_WEIGHTS
-): Promise<PredictionResult | null> {
+): Promise<PredictionResult> {
   logger.info('🧠 Running prediction engine on real fixtures...');
 
   const qualifiedBets = await findQualifiedBets(fixtures, o25Model, bttsModel);
 
   if (qualifiedBets.length === 0) {
-    logger.info('No qualified bets found with positive EV.');
-    return null;
+    const errorMsg = 'No qualified bets found with positive EV. The model scanned all fixtures but found no opportunities meeting the value threshold.';
+    logger.error(errorMsg);
+    throw new Error(errorMsg);
   }
 
   // Sort by expected value (highest first)
