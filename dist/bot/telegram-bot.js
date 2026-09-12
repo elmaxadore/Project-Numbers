@@ -1,10 +1,12 @@
 /**
  * Telegram Bot for Sports Predictions
- * Runs via GitHub Actions (Serverless) - 100% Free
+ * Runs daily via GitHub Actions (Serverless) - 100% Free
  *
  * Features:
  * - Downloads latest model/data from GitHub Releases
- * - Runs inference
+ * - Fetches REAL today's fixtures via API-Sports (RapidAPI)
+ * - Fetches REAL odds data
+ * - Runs prediction engine on real matches
  * - Sends best bet to Telegram
  */
 import fetch from 'node-fetch';
@@ -73,8 +75,34 @@ ${result.reasoning}
     `.trim();
     }
 }
+/**
+ * Recursively find files matching extension in directory
+ * Handles nested folder structures from unzip
+ */
+function findFilesRecursive(dir, extension) {
+    const results = [];
+    if (!fs.existsSync(dir)) {
+        return results;
+    }
+    const items = fs.readdirSync(dir, { withFileTypes: true });
+    for (const item of items) {
+        const fullPath = path.join(dir, item.name);
+        if (item.isDirectory()) {
+            results.push(...findFilesRecursive(fullPath, extension));
+        }
+        else if (item.isFile() && item.name.endsWith(extension)) {
+            results.push(fullPath);
+        }
+    }
+    return results;
+}
 async function main() {
     console.log('🤖 Starting Prediction Bot...');
+    // Log API Key Status
+    console.log('🔑 API Key Status:');
+    console.log(`   X_RAPIDAPI_KEY: ${process.env.X_RAPIDAPI_KEY ? '✅ Set' : '❌ Missing'}`);
+    console.log(`   THE_ODDS_API: ${process.env.THE_ODDS_API ? '✅ Set' : '❌ Missing'}`);
+    console.log(`   API_SPORTS_KEY: ${process.env.API_SPORTS_KEY ? '✅ Set' : '❌ Missing'}`);
     try {
         // 1. Verify Assets exist (downloaded by GitHub Action step)
         const releaseAssetsDir = path.join(process.cwd(), 'release-assets');
@@ -82,52 +110,50 @@ async function main() {
         if (!fs.existsSync(releaseAssetsDir)) {
             throw new Error('release-assets directory not found. Ensure the GitHub Action downloads the release first.');
         }
-        const files = fs.readdirSync(releaseAssetsDir);
-        console.log('📁 Files in release-assets:', files);
-        // Find model files (.bin) - prefer o25-ensemble.bin for Over/Under predictions
-        const modelFiles = files.filter(f => f.endsWith('.bin'));
+        // Find model files (.bin) recursively - handles nested zip structures
+        console.log('🔍 Searching for model files...');
+        const modelFiles = findFilesRecursive(releaseAssetsDir, '.bin');
         if (modelFiles.length === 0) {
             throw new Error('No model files (.bin) found in release-assets. Check the release zip contains .bin files.');
         }
         // Prefer o25-ensemble.bin, otherwise use first available
-        const modelFile = modelFiles.find(f => f.includes('o25')) || modelFiles[0];
+        const modelPath = modelFiles.find(f => f.includes('o25')) || modelFiles[0];
+        const modelFile = path.basename(modelPath);
         console.log(`✅ Selected model: ${modelFile} (from ${modelFiles.length} available)`);
         // Find data files - prefer all-sports-data.json as it contains everything
-        const dataFiles = files.filter(f => f.endsWith('.json'));
+        const dataFiles = findFilesRecursive(releaseAssetsDir, '.json');
         if (dataFiles.length === 0) {
             throw new Error('No data files (.json) found in release-assets. Check the release zip contains data JSON files.');
         }
         // Prefer all-sports-data.json, otherwise use first available football data
-        const dataFile = dataFiles.find(f => f === 'all-sports-data.json') ||
+        const dataPath = dataFiles.find(f => f.includes('all-sports-data.json')) ||
             dataFiles.find(f => f.includes('football')) ||
             dataFiles[0];
+        const dataFile = path.basename(dataPath);
         console.log(`✅ Selected data: ${dataFile} (from ${dataFiles.length} available)`);
-        const modelPath = path.join(releaseAssetsDir, modelFile);
-        const dataPath = path.join(releaseAssetsDir, dataFile);
         console.log(`✅ Model found: ${modelFile}`);
         console.log(`✅ Data found: ${dataFile}`);
-        // 2. Load Data
+        // 2. Load Historical Data for Model Training/Reference
         console.log('📖 Loading historical data...');
         const rawData = JSON.parse(fs.readFileSync(dataPath, 'utf-8'));
-        console.log(`📊 Loaded ${Array.isArray(rawData) ? rawData.length : 'object'} records`);
-        // 3. Run Inference (Simplified for demo - integrate your actual engine here)
-        console.log('🧠 Running inference on today\'s fixtures...');
-        // TODO: Integrate your actual BestBetEngine here
-        // const model = OutcomeModel.load(modelPath);
-        // const engine = new BestBetEngine(model, rawData);
-        // const bestBet = await engine.findBestBet();
-        // Mock result for now (replace with real engine call above)
-        const bestBet = {
-            match: "Man City vs Arsenal",
-            league: "Premier League",
-            market: "Over 2.5 Goals",
-            prediction: "Yes",
-            confidence: 78.5,
-            odds: 1.85,
-            expectedValue: 12.4,
-            reasoning: "High xG momentum for both teams. Historical H2H averages 3.2 goals. Model detects value against bookmaker odds."
-        };
-        // 4. Send to Telegram
+        console.log(`📊 Loaded ${Array.isArray(rawData) ? rawData.length : 'object'} historical records`);
+        // 3. Fetch REAL Today's Fixtures via API-Sports
+        console.log('📅 Fetching real fixtures for today...');
+        const { fetchTodaysFixtures } = await import('../data/todays-fixtures-fetcher.js');
+        const fixtures = await fetchTodaysFixtures();
+        if (fixtures.length === 0) {
+            console.log('⚠️ No fixtures found for today or API unavailable. Sending notification.');
+            const bot = new TelegramBotService();
+            await bot.sendMessage('🚫 **No Matches Today**\n\nNo scheduled fixtures found for today.\n\n*Check back tomorrow!*');
+            return;
+        }
+        console.log(`✅ Found ${fixtures.length} real matches for today`);
+        // 4. Run Best Bet Engine on Real Fixtures
+        console.log('🧠 Running prediction engine on real fixtures...');
+        const { findBestBet } = await import('../engine/best-bet-engine.js');
+        const { DEFAULT_O25_WEIGHTS, DEFAULT_BTTS_WEIGHTS } = await import('../engine/logistic-regression.js');
+        const bestBet = await findBestBet(fixtures, DEFAULT_O25_WEIGHTS, DEFAULT_BTTS_WEIGHTS);
+        // 5. Send to Telegram
         const bot = new TelegramBotService();
         const message = bot.formatPrediction(bestBet);
         console.log('📤 Sending prediction to Telegram...');
