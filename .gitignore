@@ -1,35 +1,18 @@
 ```
-# Compiled and build artifacts
-*.pyc
-__pycache__/
-*.o
-*.obj
-*.bin
-dist/
-build/
-target/
-
 # Dependencies
 node_modules/
-.venv/
-venv/
-.env
-.env.local
-*.env.*
 
-# Logs and temp files
-*.log
-*.tmp
-*.swp
+# Build artifacts
+dist/
+*.js
+*.js.map
+*.d.ts
+*.d.ts.map
 
-# Editors
-.vscode/
-.idea/
+# Archives
+*.zip
 
-# OS generated files
-.DS_Store
-Thumbs.db
+# Model files
+*.bin
 
-# Data cache (if it contains temporary/generated data)
-data-cache/
 ```
