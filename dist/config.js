@@ -12,7 +12,7 @@ export const CONFIG = {
     // API keys from environment
     apiSportsKey: env('API_SPORTS_KEY'),
     oddsPapiKey: env('ODDS_PAPI_KEY'),
-    oddsApiKey: env('ODDS_API_KEY'),
+    oddsApiKey: env('ODDS_API_KEY') || env('THE_ODDS_API'), // Support THE_ODDS_API secret (500 calls/month)
     ballersKey: env('BALLERS_KEY'),
     // League filter thresholds (from the paper)
     minAvgGoals: envNum('MIN_AVG_GOALS', 2.80),

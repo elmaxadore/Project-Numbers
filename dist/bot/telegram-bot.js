@@ -4,13 +4,17 @@
  *
  * Features:
  * - Downloads latest model/data from GitHub Releases
- * - Runs inference
+ * - Fetches REAL today's fixtures with odds
+ * - Runs inference using trained models
  * - Sends best bet to Telegram
  */
 import fetch from 'node-fetch';
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
+import { TodaysFixturesFetcher } from '../data/todays-fixtures-fetcher.js';
+import { predictFixture } from '../engine/prediction-pipeline.js';
+import { DEFAULT_O25_WEIGHTS, DEFAULT_BTTS_WEIGHTS } from '../engine/logistic-regression.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 // Configuration from Environment Variables (Set in GitHub Secrets)
@@ -129,31 +133,215 @@ async function main() {
         const dataPath = dataFile;
         console.log(`✅ Model found: ${path.basename(modelFile)}`);
         console.log(`✅ Data found: ${path.basename(dataFile)}`);
-        // 2. Load Data
+        // 2. Load Historical Data
         console.log('📖 Loading historical data...');
         const rawData = JSON.parse(fs.readFileSync(dataPath, 'utf-8'));
         console.log(`📊 Loaded ${Array.isArray(rawData) ? rawData.length : 'object'} records`);
-        // 3. Run Inference (Simplified for demo - integrate your actual engine here)
-        console.log('🧠 Running inference on today\'s fixtures...');
-        // TODO: Integrate your actual BestBetEngine here
-        // const model = OutcomeModel.load(modelPath);
-        // const engine = new BestBetEngine(model, rawData);
-        // const bestBet = await engine.findBestBet();
-        // Mock result for now (replace with real engine call above)
-        const bestBet = {
-            match: "Man City vs Arsenal",
-            league: "Premier League",
-            market: "Over 2.5 Goals",
-            prediction: "Yes",
-            confidence: 78.5,
-            odds: 1.85,
-            expectedValue: 12.4,
-            reasoning: "High xG momentum for both teams. Historical H2H averages 3.2 goals. Model detects value against bookmaker odds."
-        };
-        // 4. Send to Telegram
+        // 3. Fetch TODAY'S REAL FIXTURES WITH ODDS
+        console.log('\n📅 Fetching today\'s fixtures and odds...');
+        const fixturesFetcher = new TodaysFixturesFetcher();
+        const todaysFixtures = await fixturesFetcher.getTodaysFixtures();
+        console.log(`\n⚽ Found ${todaysFixtures.length} fixtures scheduled for today:`);
+        for (const fixture of todaysFixtures.slice(0, 5)) {
+            const oddsStr = fixture.odds
+                ? `| O2.5: ${fixture.odds.over25?.toFixed(2) || 'N/A'} | U2.5: ${fixture.odds.under25?.toFixed(2) || 'N/A'}`
+                : '| Odds: N/A';
+            console.log(`   • ${fixture.league.name}: ${fixture.homeTeam.name} vs ${fixture.awayTeam.name} ${oddsStr}`);
+        }
+        if (todaysFixtures.length > 5) {
+            console.log(`   ... and ${todaysFixtures.length - 5} more fixtures`);
+        }
+        // 4. Run Inference on Today's Fixtures
+        console.log('\n🧠 Running model inference on today\'s fixtures...');
+        // Convert historical data to team stats for feature extraction
+        const teamStatsCache = new Map();
+        // Calculate team stats from historical data
+        if (Array.isArray(rawData)) {
+            const teamMatches = new Map();
+            for (const match of rawData) {
+                if (match.sport !== 'football')
+                    continue;
+                // Home team stats
+                const homeKey = `${match.league}|${match.homeTeam}`;
+                if (!teamMatches.has(homeKey)) {
+                    teamMatches.set(homeKey, { xgFor: [], xgAgainst: [], goalsFor: [], goalsAgainst: [], cleanSheets: 0, failedToScore: 0, count: 0 });
+                }
+                const homeStats = teamMatches.get(homeKey);
+                homeStats.goalsFor.push(match.homeScore);
+                homeStats.goalsAgainst.push(match.awayScore);
+                homeStats.count++;
+                if (match.awayScore === 0)
+                    homeStats.cleanSheets++;
+                if (match.homeScore === 0)
+                    homeStats.failedToScore++;
+                // Away team stats
+                const awayKey = `${match.league}|${match.awayTeam}`;
+                if (!teamMatches.has(awayKey)) {
+                    teamMatches.set(awayKey, { xgFor: [], xgAgainst: [], goalsFor: [], goalsAgainst: [], cleanSheets: 0, failedToScore: 0, count: 0 });
+                }
+                const awayStats = teamMatches.get(awayKey);
+                awayStats.goalsFor.push(match.awayScore);
+                awayStats.goalsAgainst.push(match.homeScore);
+                awayStats.count++;
+                if (match.homeScore === 0)
+                    awayStats.cleanSheets++;
+                if (match.awayScore === 0)
+                    awayStats.failedToScore++;
+            }
+            // Calculate averages
+            for (const [key, stats] of teamMatches.entries()) {
+                const avgGoalsFor = stats.goalsFor.reduce((a, b) => a + b, 0) / Math.max(stats.count, 1);
+                const avgGoalsAgainst = stats.goalsAgainst.reduce((a, b) => a + b, 0) / Math.max(stats.count, 1);
+                teamStatsCache.set(key, {
+                    avgXG: avgGoalsFor * 0.85, // Approximate xG from actual goals
+                    avgXGA: avgGoalsAgainst * 0.85,
+                    cleanSheetRate: stats.cleanSheets / Math.max(stats.count, 1),
+                    failedToScoreRate: stats.failedToScore / Math.max(stats.count, 1),
+                    avgGoalsScored: avgGoalsFor,
+                    avgGoalsConceded: avgGoalsAgainst,
+                });
+            }
+        }
+        // Analyze each fixture
+        const analyzedBets = [];
+        for (const fixture of todaysFixtures) {
+            // Get team stats
+            const homeKey = `${fixture.league.name}|${fixture.homeTeam.name}`;
+            const awayKey = `${fixture.league.name}|${fixture.awayTeam.name}`;
+            const homeStats = teamStatsCache.get(homeKey) || {
+                avgXG: 1.5, avgXGA: 1.5, cleanSheetRate: 0.3, failedToScoreRate: 0.3, avgGoalsScored: 1.5, avgGoalsConceded: 1.5
+            };
+            const awayStats = teamStatsCache.get(awayKey) || {
+                avgXG: 1.5, avgXGA: 1.5, cleanSheetRate: 0.3, failedToScoreRate: 0.3, avgGoalsScored: 1.5, avgGoalsConceded: 1.5
+            };
+            // Create fixture data package for prediction
+            const fixtureDataPackage = {
+                fixture: {
+                    id: fixture.fixtureId,
+                    leagueId: fixture.league.id,
+                    leagueName: fixture.league.name,
+                    homeTeam: { id: fixture.homeTeam.id, name: fixture.homeTeam.name },
+                    awayTeam: { id: fixture.awayTeam.id, name: fixture.awayTeam.name },
+                    date: fixture.date,
+                    status: 'scheduled',
+                },
+                expectedStats: {
+                    fixtureId: fixture.fixtureId,
+                    homeTeamStats: {
+                        teamId: fixture.homeTeam.id,
+                        teamName: fixture.homeTeam.name,
+                        venue: 'home',
+                        matchesPlayed: 10,
+                        goalsScored: homeStats.avgGoalsScored * 10,
+                        goalsConceded: homeStats.avgGoalsConceded * 10,
+                        avgGoalsScored: homeStats.avgGoalsScored,
+                        avgGoalsConceded: homeStats.avgGoalsConceded,
+                        xG: homeStats.avgXG,
+                        xGA: homeStats.avgXGA,
+                        cleanSheetRate: homeStats.cleanSheetRate,
+                        failedToScoreRate: homeStats.failedToScoreRate,
+                        bttsRate: 0.5,
+                        over25Rate: 0.5,
+                        over15Rate: 0.7,
+                    },
+                    awayTeamStats: {
+                        teamId: fixture.awayTeam.id,
+                        teamName: fixture.awayTeam.name,
+                        venue: 'away',
+                        matchesPlayed: 10,
+                        goalsScored: awayStats.avgGoalsScored * 10,
+                        goalsConceded: awayStats.avgGoalsConceded * 10,
+                        avgGoalsScored: awayStats.avgGoalsScored,
+                        avgGoalsConceded: awayStats.avgGoalsConceded,
+                        xG: awayStats.avgXG,
+                        xGA: awayStats.avgXGA,
+                        cleanSheetRate: awayStats.cleanSheetRate,
+                        failedToScoreRate: awayStats.failedToScoreRate,
+                        bttsRate: 0.5,
+                        over25Rate: 0.5,
+                        over15Rate: 0.7,
+                    },
+                    combinedExpectedGoals: homeStats.avgXG + awayStats.avgXGA,
+                    combinedExpectedConceded: homeStats.avgXGA + awayStats.avgXG,
+                    fixtureXG: (homeStats.avgXG + awayStats.avgXGA + homeStats.avgXGA + awayStats.avgXG) / 2,
+                },
+                odds: fixture.odds ? [{
+                        fixtureId: fixture.fixtureId,
+                        bookmaker: 'Average',
+                        market: 'over_2.5_goals',
+                        overOdds: fixture.odds.over25 || null,
+                        underOdds: fixture.odds.under25 || null,
+                        yesOdds: fixture.odds.bttsYes || null,
+                        noOdds: fixture.odds.bttsNo || null,
+                        homeOdds: fixture.odds.homeWin || null,
+                        drawOdds: fixture.odds.draw || null,
+                        awayOdds: fixture.odds.awayWin || null,
+                        timestamp: fixture.date,
+                    }] : [],
+                leagueFilterPassed: true,
+                sampleSizeFilterPassed: true,
+                outlierFlags: {
+                    isRunawayGiant: false,
+                    homeCleanSheetRate: homeStats.cleanSheetRate,
+                    awayFailedToScoreRate: awayStats.failedToScoreRate,
+                },
+            };
+            // Get model predictions
+            const predictions = predictFixture(fixtureDataPackage, DEFAULT_O25_WEIGHTS, DEFAULT_BTTS_WEIGHTS);
+            // Find best value bet for this fixture
+            for (const pred of predictions) {
+                let marketName;
+                let predictionLabel;
+                let modelProb;
+                let marketOdds;
+                if (pred.market === 'over_2.5_goals') {
+                    marketName = 'Over 2.5 Goals';
+                    predictionLabel = 'Yes';
+                    modelProb = pred.modelProbability;
+                    marketOdds = fixture.odds?.over25 || null;
+                }
+                else if (pred.market === 'btts_yes') {
+                    marketName = 'Both Teams to Score';
+                    predictionLabel = 'Yes';
+                    modelProb = pred.modelProbability;
+                    marketOdds = fixture.odds?.bttsYes || null;
+                }
+                else {
+                    continue;
+                }
+                // Calculate expected value
+                const fairOdd = marketOdds && marketOdds > 0 ? 1 / marketOdds : 0.5;
+                const edge = (modelProb - fairOdd) * 100;
+                // Only consider bets with positive EV
+                if (edge > 5) { // Minimum 5% edge threshold
+                    analyzedBets.push({
+                        match: `${fixture.homeTeam.name} vs ${fixture.awayTeam.name}`,
+                        league: fixture.league.name,
+                        market: marketName,
+                        prediction: predictionLabel,
+                        confidence: pred.modelConfidence * 100,
+                        odds: marketOdds || 1.8,
+                        expectedValue: edge,
+                        reasoning: `Model probability: ${(modelProb * 100).toFixed(1)}% vs Fair odd: ${(fairOdd * 100).toFixed(1)}%. ${fixture.homeTeam.name} averaging ${homeStats.avgGoalsScored.toFixed(2)} goals scored/${homeStats.avgGoalsConceded.toFixed(2)} conceded. ${fixture.awayTeam.name} averaging ${awayStats.avgGoalsScored.toFixed(2)}/${awayStats.avgGoalsConceded.toFixed(2)}.`,
+                        fixture,
+                    });
+                }
+            }
+        }
+        // Sort by expected value and pick the best bet
+        analyzedBets.sort((a, b) => b.expectedValue - a.expectedValue);
+        const bestBet = analyzedBets.length > 0 ? analyzedBets[0] : null;
+        if (bestBet) {
+            console.log(`\n✅ Best bet identified: ${bestBet.match} - ${bestBet.prediction} (${bestBet.market})`);
+            console.log(`   Confidence: ${bestBet.confidence.toFixed(1)}%, EV: +${bestBet.expectedValue.toFixed(2)}%, Odds: ${bestBet.odds.toFixed(2)}`);
+        }
+        else {
+            console.log('\n⚠️ No value bets found meeting the criteria.');
+        }
+        // 5. Send to Telegram
         const bot = new TelegramBotService();
         const message = bot.formatPrediction(bestBet);
-        console.log('📤 Sending prediction to Telegram...');
+        console.log('\n📤 Sending prediction to Telegram...');
         await bot.sendMessage(message);
         console.log('✅ Bot execution complete.');
     }

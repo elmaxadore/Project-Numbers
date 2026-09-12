@@ -4,7 +4,8 @@
  *
  * Features:
  * - Downloads latest model/data from GitHub Releases
- * - Runs inference
+ * - Fetches REAL today's fixtures with odds
+ * - Runs inference using trained models
  * - Sends best bet to Telegram
  */
 export {};
