@@ -9,7 +9,7 @@ on:
 jobs:
   predict-and-notify:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -26,15 +26,36 @@ jobs:
       - name: Build Project
         run: npm run build
 
-      - name: Download Latest Model & Data
+      - name: Download Release Assets
         run: |
-          # Create data directory
-          mkdir -p ./data/cache
+          # Create release-assets directory
+          mkdir -p ./release-assets
+
+          # Download the zip file from releases
+          echo "⬇️ Downloading model-release-v1.0.0.zip from GitHub Releases..."
+          gh release download v1.0.0 --repo ${{ github.repository }} --pattern "*.zip" --dir ./release-assets || {
+            echo "❌ Failed to download release. Make sure v1.0.0 exists with a .zip file."
+            exit 1
+          }
           
-          # Download latest release assets (model and data)
-          # This assumes you upload model-latest.bin and all-sports-data.json to GitHub Releases
-          gh release download latest --repo ${{ github.repository }} --pattern "*.bin" --dir ./data || echo "No binary releases found, using cached model"
-          gh release download latest --repo ${{ github.repository }} --pattern "*.json" --dir ./data/cache || echo "No data releases found, scraping fresh data"
+          # List what we downloaded
+          echo "📂 Downloaded files:"
+          ls -la ./release-assets
+          
+          # Unzip the model and data files
+          if [ -f ./release-assets/model-release-v1.0.0.zip ]; then
+            echo "📦 Extracting model and data..."
+            unzip -o ./release-assets/model-release-v1.0.0.zip -d ./release-assets
+            echo "✅ Extraction complete. Verifying files:"
+            ls -la ./release-assets/*.bin ./release-assets/*.json 2>/dev/null || {
+              echo "⚠️ Some expected files (.bin or .json) not found after extraction"
+              exit 1
+            }
+          else
+            echo "❌ Zip file not found in release-assets after download"
+            ls -la ./release-assets
+            exit 1
+          fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -43,10 +64,3 @@ jobs:
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-
-      - name: Upload Updated Model (if retrained)
-        if: always() # Try to upload even if prediction failed (for debugging)
-        run: |
-          # If your bot retrains or updates the model, upload it back to releases
-          # This is optional and depends on your workflow
-          echo "Model update step placeholder"

@@ -1,18 +1,26 @@
 ```
+# Build artifacts
+dist/
+*.js.map
+
 # Dependencies
 node_modules/
 
-# Build artifacts
-dist/
-*.js
-*.js.map
-*.d.ts
-*.d.ts.map
+# Environment
+.env
+.env.local
+*.env.*
 
-# Archives
-*.zip
+# Editors
+.vscode/
+.idea/
 
-# Model files
-*.bin
+# Logs and temp files
+*.log
+*.tmp
+*.swp
 
+# OS specific
+.DS_Store
+Thumbs.db
 ```
