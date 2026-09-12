@@ -118,4 +118,12 @@ export declare function serializeModel(model: ModelWeights): string;
  * Deserialize model weights from JSON
  */
 export declare function deserializeModel(json: string): ModelWeights;
+/**
+ * Save model weights to a file
+ */
+export declare function saveModelToFile(model: ModelWeights, filePath: string): Promise<void>;
+/**
+ * Load model weights from a file
+ */
+export declare function loadModelFromFile(filePath: string): Promise<ModelWeights>;
 //# sourceMappingURL=logistic-regression.d.ts.map

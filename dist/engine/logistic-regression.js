@@ -340,4 +340,30 @@ export function serializeModel(model) {
 export function deserializeModel(json) {
     return JSON.parse(json);
 }
+/**
+ * Save model weights to a file
+ */
+export async function saveModelToFile(model, filePath) {
+    const fs = await import('fs');
+    const path = await import('path');
+    // Ensure directory exists
+    const dir = path.dirname(filePath);
+    if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+    }
+    const json = serializeModel(model);
+    fs.writeFileSync(filePath, json, 'utf-8');
+    logger.info(`Model saved to ${filePath}`);
+}
+/**
+ * Load model weights from a file
+ */
+export async function loadModelFromFile(filePath) {
+    const fs = await import('fs');
+    if (!fs.existsSync(filePath)) {
+        throw new Error(`Model file not found: ${filePath}`);
+    }
+    const json = fs.readFileSync(filePath, 'utf-8');
+    return deserializeModel(json);
+}
 //# sourceMappingURL=logistic-regression.js.map

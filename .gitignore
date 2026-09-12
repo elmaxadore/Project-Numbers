@@ -4,18 +4,18 @@
 __pycache__/
 *.o
 *.obj
-*.out
+*.bin
 dist/
 build/
 target/
 
 # Dependencies
 node_modules/
-venv/
 .venv/
+venv/
 .env
 .env.local
-.env.*
+*.env.*
 
 # Logs and temp files
 *.log
@@ -30,14 +30,6 @@ venv/
 .DS_Store
 Thumbs.db
 
-# Coverage reports
-coverage/
-htmlcov/
-.coverage
-
-# Data cache (since these appear to be generated/cache files)
+# Data cache (if it contains temporary/generated data)
 data-cache/
-
-# Map files
-*.map
 ```
