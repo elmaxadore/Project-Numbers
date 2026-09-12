@@ -9,10 +9,10 @@ function envNum(key, fallback) {
     return val ? parseFloat(val) : fallback;
 }
 export const CONFIG = {
-    // API keys from environment
-    apiSportsKey: env('API_SPORTS_KEY'),
-    oddsPapiKey: env('ODDS_PAPI_KEY'),
-    oddsApiKey: env('ODDS_API_KEY'),
+    // API keys from environment (support both naming conventions)
+    apiSportsKey: env('API_SPORTS_KEY') || env('X_RAPIDAPI_KEY'),
+    oddsPapiKey: env('ODDS_PAPI_KEY') || env('THE_ODDS_API'),
+    oddsApiKey: env('ODDS_API_KEY') || env('THE_ODDS_API'),
     ballersKey: env('BALLERS_KEY'),
     // League filter thresholds (from the paper)
     minAvgGoals: envNum('MIN_AVG_GOALS', 2.80),

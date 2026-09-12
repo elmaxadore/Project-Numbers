@@ -64,3 +64,6 @@ jobs:
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          X_RAPIDAPI_KEY: ${{ secrets.X_RAPIDAPI_KEY }}
+          THE_ODDS_API: ${{ secrets.THE_ODDS_API }}
+          API_SPORTS_KEY: ${{ secrets.API_SPORTS_KEY }}

@@ -1,78 +1,49 @@
 ```
 # Build artifacts
 dist/
+*.js
 *.js.map
-
-# Dependencies
-node_modules/
-
-# Logs and temp files
-*.log
-*.tmp
+*.d.ts
+*.d.ts.map
 
 # Environment
 .env
 .env.local
 *.env.*
 
+# Dependencies
+node_modules/
+
 # Editors
 .vscode/
 .idea/
 
-# Python
+# Logs and temp files
+*.log
+*.tmp
+*.swp
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Python related (if any Python in project)
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
-
-# Compiled
-*.o
-*.obj
-*.so
-*.a
-*.dll
-*.exe
-*.out
-
-# Distribution / packaging
 .Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
 
-# Coverage
-.coverage
+# Coverage reports
 coverage/
 htmlcov/
+.coverage
 
 # Testing
-.pytest_cache/
 .mypy_cache/
-.hypothesis/
+.pytest_cache/
 
-# IDEs
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# OS generated
-.DS_Store
-Thumbs.db
-
-# Compression
+# Compressed files
 *.zip
 *.gz
 *.tar
