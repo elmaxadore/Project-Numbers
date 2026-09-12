@@ -31,10 +31,17 @@ jobs:
           # Create release-assets directory
           mkdir -p ./release-assets
 
-          # Download the zip file from releases
-          echo "⬇️ Downloading model-release-v1.0.0.zip from GitHub Releases..."
-          gh release download v1.0.0 --repo ${{ github.repository }} --pattern "*.zip" --dir ./release-assets || {
-            echo "❌ Failed to download release. Make sure v1.0.0 exists with a .zip file."
+          # Download the latest zip file from releases (don't hardcode version)
+          echo "⬇️ Downloading latest model release from GitHub Releases..."
+          LATEST_RELEASE=$(gh release list --limit 1 --json tagName --jq '.[0].tagName')
+          if [ -z "$LATEST_RELEASE" ]; then
+            echo "❌ No releases found in this repository"
+            exit 1
+          fi
+          echo "📦 Found latest release: $LATEST_RELEASE"
+          
+          gh release download "$LATEST_RELEASE" --repo ${{ github.repository }} --pattern "*.zip" --dir ./release-assets || {
+            echo "❌ Failed to download release. Make sure a release exists with a .zip file."
             exit 1
           }
           
@@ -42,20 +49,19 @@ jobs:
           echo "📂 Downloaded files:"
           ls -la ./release-assets
           
-          # Unzip the model and data files
-          if [ -f ./release-assets/model-release-v1.0.0.zip ]; then
-            echo "📦 Extracting model and data..."
-            unzip -o ./release-assets/model-release-v1.0.0.zip -d ./release-assets
-            echo "✅ Extraction complete. Verifying files:"
-            ls -la ./release-assets/*.bin ./release-assets/*.json 2>/dev/null || {
-              echo "⚠️ Some expected files (.bin or .json) not found after extraction"
-              exit 1
-            }
-          else
-            echo "❌ Zip file not found in release-assets after download"
-            ls -la ./release-assets
-            exit 1
-          fi
+          # Unzip all zip files (handles multiple or nested zips)
+          for zipfile in ./release-assets/*.zip; do
+            if [ -f "$zipfile" ]; then
+              echo "📦 Extracting $zipfile..."
+              unzip -o "$zipfile" -d ./release-assets
+            fi
+          done
+          
+          echo "✅ Extraction complete. Verifying files:"
+          ls -la ./release-assets/*.bin ./release-assets/*.json 2>/dev/null || {
+            echo "⚠️ Some expected files (.bin or .json) not found after extraction"
+            # Don't exit here - let the bot handle missing files with proper error
+          }
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
