@@ -84,15 +84,24 @@ async function main() {
         }
         const files = fs.readdirSync(releaseAssetsDir);
         console.log('📁 Files in release-assets:', files);
-        // Find model and data files
-        const modelFile = files.find(f => f.endsWith('.bin'));
-        const dataFile = files.find(f => f.endsWith('-data.json') || f === 'all-sports-data.json');
-        if (!modelFile) {
-            throw new Error('Model file (.bin) not found in release-assets. Check the release zip contains .bin files.');
+        // Find model files (.bin) - prefer o25-ensemble.bin for Over/Under predictions
+        const modelFiles = files.filter(f => f.endsWith('.bin'));
+        if (modelFiles.length === 0) {
+            throw new Error('No model files (.bin) found in release-assets. Check the release zip contains .bin files.');
         }
-        if (!dataFile) {
-            throw new Error('Data file (.json) not found in release-assets. Check the release zip contains data JSON files.');
+        // Prefer o25-ensemble.bin, otherwise use first available
+        const modelFile = modelFiles.find(f => f.includes('o25')) || modelFiles[0];
+        console.log(`✅ Selected model: ${modelFile} (from ${modelFiles.length} available)`);
+        // Find data files - prefer all-sports-data.json as it contains everything
+        const dataFiles = files.filter(f => f.endsWith('.json'));
+        if (dataFiles.length === 0) {
+            throw new Error('No data files (.json) found in release-assets. Check the release zip contains data JSON files.');
         }
+        // Prefer all-sports-data.json, otherwise use first available football data
+        const dataFile = dataFiles.find(f => f === 'all-sports-data.json') ||
+            dataFiles.find(f => f.includes('football')) ||
+            dataFiles[0];
+        console.log(`✅ Selected data: ${dataFile} (from ${dataFiles.length} available)`);
         const modelPath = path.join(releaseAssetsDir, modelFile);
         const dataPath = path.join(releaseAssetsDir, dataFile);
         console.log(`✅ Model found: ${modelFile}`);
