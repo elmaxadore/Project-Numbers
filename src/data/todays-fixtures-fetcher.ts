@@ -26,15 +26,14 @@ export interface TodaysFixture {
 
 /**
  * Fetch all fixtures scheduled for today
- * Returns empty array if API fails or no fixtures found
+ * Throws error if API key is missing or API call fails
  */
 export async function fetchTodaysFixtures(): Promise<TodaysFixture[]> {
   logger.info('📅 Fetching real fixtures for today...');
 
   // Check if API key is configured
   if (!CONFIG.apiSportsKey) {
-    logger.warn('⚠️ API_SPORTS_KEY or X_RAPIDAPI_KEY not configured. Cannot fetch fixtures.');
-    return [];
+    throw new Error('API_SPORTS_KEY or X_RAPIDAPI_KEY not configured. Please set the environment variable in GitHub Secrets.');
   }
 
   try {
@@ -84,7 +83,7 @@ export async function fetchTodaysFixtures(): Promise<TodaysFixture[]> {
     return todaysFixtures;
   } catch (error: any) {
     logger.error(`Failed to fetch fixtures: ${error.message}`);
-    return [];
+    throw new Error(`API-Sports fixture fetch failed: ${error.message}. Check your X_RAPIDAPI_KEY secret.`);
   }
 }
 

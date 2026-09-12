@@ -142,10 +142,8 @@ async function main() {
         const { fetchTodaysFixtures } = await import('../data/todays-fixtures-fetcher.js');
         const fixtures = await fetchTodaysFixtures();
         if (fixtures.length === 0) {
-            console.log('⚠️ No fixtures found for today or API unavailable. Sending notification.');
-            const bot = new TelegramBotService();
-            await bot.sendMessage('🚫 **No Matches Today**\n\nNo scheduled fixtures found for today.\n\n*Check back tomorrow!*');
-            return;
+            console.log('⚠️ No fixtures found for today.');
+            throw new Error('No fixtures scheduled for today. Check back tomorrow or verify API-Sports is returning data.');
         }
         console.log(`✅ Found ${fixtures.length} real matches for today`);
         // 4. Run Best Bet Engine on Real Fixtures
