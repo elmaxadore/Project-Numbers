@@ -45,10 +45,27 @@ jobs:
           # Unzip the model and data files
           if [ -f ./release-assets/model-release-v1.0.0.zip ]; then
             echo "📦 Extracting model and data..."
-            unzip -o ./release-assets/model-release-v1.0.0.zip -d ./release-assets
+            # Extract to a temporary directory first to check structure
+            TEMP_EXTRACT_DIR="./release-assets/temp_extract"
+            mkdir -p "$TEMP_EXTRACT_DIR"
+            unzip -o ./release-assets/model-release-v1.0.0.zip -d "$TEMP_EXTRACT_DIR"
+            
+            echo "🔍 Checking extraction structure..."
+            ls -R "$TEMP_EXTRACT_DIR"
+            
+            # Flatten the directory structure - move all files to release-assets root
+            # This handles cases where zip contains nested folders
+            find "$TEMP_EXTRACT_DIR" -type f -exec mv {} ./release-assets/ \;
+            
+            # Clean up temp directory and zip file
+            rm -rf "$TEMP_EXTRACT_DIR"
+            rm -f ./release-assets/model-release-v1.0.0.zip
+            
             echo "✅ Extraction complete. Verifying files:"
             ls -la ./release-assets/*.bin ./release-assets/*.json 2>/dev/null || {
               echo "⚠️ Some expected files (.bin or .json) not found after extraction"
+              echo "📂 Full contents of release-assets:"
+              ls -laR ./release-assets
               exit 1
             }
           else

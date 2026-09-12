@@ -96,46 +96,72 @@ ${result.reasoning}
 
 async function main() {
   console.log('🤖 Starting Prediction Bot...');
+  console.log(`📂 Current working directory: ${process.cwd()}`);
 
   try {
     // 1. Verify Assets exist (downloaded by GitHub Action step)
     const releaseAssetsDir = path.join(process.cwd(), 'release-assets');
     
     console.log('📂 Checking release-assets directory...');
+    console.log(`🔍 Absolute path: ${releaseAssetsDir}`);
+    
     if (!fs.existsSync(releaseAssetsDir)) {
-      throw new Error('release-assets directory not found. Ensure the GitHub Action downloads the release first.');
+      throw new Error(`release-assets directory not found at ${releaseAssetsDir}. Ensure the GitHub Action downloads the release first.`);
     }
 
-    const files = fs.readdirSync(releaseAssetsDir);
-    console.log('📁 Files in release-assets:', files);
+    // Recursive function to find all files in directory tree
+    function getAllFiles(dirPath: string, arrayOfFiles: string[] = []): string[] {
+      const entries = fs.readdirSync(dirPath, { withFileTypes: true });
+      
+      for (const entry of entries) {
+        const fullPath = path.join(dirPath, entry.name);
+        if (entry.isDirectory()) {
+          getAllFiles(fullPath, arrayOfFiles);
+        } else if (entry.isFile()) {
+          arrayOfFiles.push(fullPath);
+        }
+      }
+      
+      return arrayOfFiles;
+    }
+
+    console.log('📁 Scanning release-assets recursively...');
+    const allFiles = getAllFiles(releaseAssetsDir);
+    console.log('📄 All files found:', allFiles.map(f => path.relative(releaseAssetsDir, f)));
 
     // Find model files (.bin) - prefer o25-ensemble.bin for Over/Under predictions
-    const modelFiles = files.filter(f => f.endsWith('.bin'));
+    const modelFiles = allFiles.filter(f => f.endsWith('.bin'));
     if (modelFiles.length === 0) {
+      console.error('❌ No .bin files found. Directory contents:');
+      console.error(fs.readdirSync(releaseAssetsDir, { recursive: true }));
       throw new Error('No model files (.bin) found in release-assets. Check the release zip contains .bin files.');
     }
     
     // Prefer o25-ensemble.bin, otherwise use first available
-    const modelFile = modelFiles.find(f => f.includes('o25')) || modelFiles[0];
-    console.log(`✅ Selected model: ${modelFile} (from ${modelFiles.length} available)`);
+    const modelFile = modelFiles.find(f => path.basename(f).includes('o25')) || modelFiles[0];
+    console.log(`✅ Selected model: ${path.basename(modelFile)} (from ${modelFiles.length} available)`);
+    console.log(`   Full path: ${modelFile}`);
 
     // Find data files - prefer all-sports-data.json as it contains everything
-    const dataFiles = files.filter(f => f.endsWith('.json'));
+    const dataFiles = allFiles.filter(f => f.endsWith('.json'));
     if (dataFiles.length === 0) {
+      console.error('❌ No .json files found. Directory contents:');
+      console.error(fs.readdirSync(releaseAssetsDir, { recursive: true }));
       throw new Error('No data files (.json) found in release-assets. Check the release zip contains data JSON files.');
     }
     
     // Prefer all-sports-data.json, otherwise use first available football data
-    const dataFile = dataFiles.find(f => f === 'all-sports-data.json') || 
-                     dataFiles.find(f => f.includes('football')) || 
+    const dataFile = dataFiles.find(f => path.basename(f) === 'all-sports-data.json') || 
+                     dataFiles.find(f => path.basename(f).includes('football')) || 
                      dataFiles[0];
-    console.log(`✅ Selected data: ${dataFile} (from ${dataFiles.length} available)`);
+    console.log(`✅ Selected data: ${path.basename(dataFile)} (from ${dataFiles.length} available)`);
+    console.log(`   Full path: ${dataFile}`);
 
-    const modelPath = path.join(releaseAssetsDir, modelFile);
-    const dataPath = path.join(releaseAssetsDir, dataFile);
+    const modelPath = modelFile;
+    const dataPath = dataFile;
 
-    console.log(`✅ Model found: ${modelFile}`);
-    console.log(`✅ Data found: ${dataFile}`);
+    console.log(`✅ Model found: ${path.basename(modelFile)}`);
+    console.log(`✅ Data found: ${path.basename(dataFile)}`);
 
     // 2. Load Data
     console.log('📖 Loading historical data...');
