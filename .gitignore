@@ -1,8 +1,12 @@
 ```
 # Build artifacts
 dist/
+build/
+
+# Compiled files
 *.js
 *.js.map
+*.d.ts
 *.d.ts.map
 
 # Dependencies
@@ -17,27 +21,45 @@ node_modules/
 .vscode/
 .idea/
 
-# Logs and temp files
+# Logs
 *.log
-*.tmp
-*.swp
+
+# Coverage
+coverage/
+htmlcov/
+.coverage
 
 # Python
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
-
-# Compiled and build artifacts
-*.o
-*.obj
-*.exe
-*.dll
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
 *.so
-*.a
-*.out
+.PyCharmCache/
+.pytest_cache/
+.mypy_cache/
 
-# Compression
+# Node
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Backup files
+*.bak
+*.swp
+*.swo
+
+# Compressed
 *.zip
 *.gz
 *.tar
@@ -60,27 +82,4 @@ __pycache__/
 *.tar.bz2
 *.tar.xz
 *.tar.zst
-
-# Coverage
-coverage/
-htmlcov/
-.coverage
-
-# MyPy
-.mypy_cache/
-
-# PyTest
-.pytest_cache/
-
-# Gradle
-.gradle/
-
-# Target
-target/
-
-# Julia
-julia-*/
-
-# Zig
-zig*/
 ```
