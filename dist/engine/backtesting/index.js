@@ -1,19 +1,14 @@
-"use strict";
 // ============================================================
 // Backtesting Harness
 // Validates model performance against historical data
 // Simulates the system's decisions over past seasons
 // ============================================================
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.runBacktest = runBacktest;
-exports.printBacktestResults = printBacktestResults;
-exports.main = main;
-const config_js_1 = require("../../config.js");
-const math_js_1 = require("../../utils/math.js");
-const prediction_pipeline_js_1 = require("../prediction-pipeline.js");
-const value_calculator_js_1 = require("../value-calculator.js");
-const logger_js_1 = require("../../utils/logger.js");
-const logistic_regression_js_1 = require("../logistic-regression.js");
+import { CONFIG } from '../../config.js';
+import { calculateROI, maxDrawdown, } from '../../utils/math.js';
+import { predictFixture } from '../prediction-pipeline.js';
+import { analyzeValue } from '../value-calculator.js';
+import { logger } from '../../utils/logger.js';
+import { DEFAULT_O25_WEIGHTS, DEFAULT_BTTS_WEIGHTS, } from '../logistic-regression.js';
 /**
  * Simulate a single match outcome based on actual goals
  */
@@ -33,15 +28,15 @@ function simulateOutcome(homeGoals, awayGoals, market) {
 /**
  * Backtest the system against historical fixtures
  */
-async function runBacktest(historicalFixtures, o25Model = logistic_regression_js_1.DEFAULT_O25_WEIGHTS, bttsModel = logistic_regression_js_1.DEFAULT_BTTS_WEIGHTS, config = config_js_1.CONFIG) {
-    logger_js_1.logger.info(`\n📊 Starting backtest with ${historicalFixtures.length} historical fixtures...\n`);
+export async function runBacktest(historicalFixtures, o25Model = DEFAULT_O25_WEIGHTS, bttsModel = DEFAULT_BTTS_WEIGHTS, config = CONFIG) {
+    logger.info(`\n📊 Starting backtest with ${historicalFixtures.length} historical fixtures...\n`);
     const bets = [];
     for (const { fixture, homeGoals, awayGoals } of historicalFixtures) {
         // Generate predictions
-        const predictions = (0, prediction_pipeline_js_1.predictFixture)(fixture, o25Model, bttsModel);
+        const predictions = predictFixture(fixture, o25Model, bttsModel);
         // Check value for each market
         for (const prediction of predictions) {
-            const valueAnalysis = (0, value_calculator_js_1.analyzeValue)(prediction, fixture.odds, config);
+            const valueAnalysis = analyzeValue(prediction, fixture.odds, config);
             if (!valueAnalysis || !valueAnalysis.hasEdge)
                 continue;
             // Check if bet would have won
@@ -97,7 +92,7 @@ function compileResults(bets, fixtures) {
         const marketBets = bets.filter(b => b.market === key);
         const marketStake = marketBets.reduce((sum, b) => sum + b.stake, 0);
         const marketProfit = marketBets.reduce((sum, b) => sum + b.profit, 0);
-        m.roi = (0, math_js_1.calculateROI)(marketProfit, marketStake);
+        m.roi = calculateROI(marketProfit, marketStake);
     }
     // By league breakdown
     const betsByLeague = {};
@@ -115,7 +110,7 @@ function compileResults(bets, fixtures) {
         const leagueBets = bets.filter(b => b.league === league);
         const leagueStake = leagueBets.reduce((sum, b) => sum + b.stake, 0);
         const leagueProfit = leagueBets.reduce((sum, b) => sum + b.profit, 0);
-        l.roi = (0, math_js_1.calculateROI)(leagueProfit, leagueStake);
+        l.roi = calculateROI(leagueProfit, leagueStake);
     }
     // Period
     const dates = bets.map(b => b.date).sort();
@@ -126,8 +121,8 @@ function compileResults(bets, fixtures) {
         winRate: bets.length > 0 ? (wins / bets.length) * 100 : 0,
         totalStake,
         totalProfit,
-        roi: (0, math_js_1.calculateROI)(totalProfit, totalStake),
-        maxDrawdown: (0, math_js_1.maxDrawdown)(bets.map(b => b.profit)),
+        roi: calculateROI(totalProfit, totalStake),
+        maxDrawdown: maxDrawdown(bets.map(b => b.profit)),
         averageOdds: bets.length > 0 ? bets.reduce((sum, b) => sum + b.odds, 0) / bets.length : 0,
         averageValue: bets.length > 0 ? bets.reduce((sum, b) => sum + b.value, 0) / bets.length : 0,
         betsByMarket: betsByMarket,
@@ -141,7 +136,7 @@ function compileResults(bets, fixtures) {
 /**
  * Print backtest results in a readable format
  */
-function printBacktestResults(result) {
+export function printBacktestResults(result) {
     console.log('\n╔══════════════════════════════════════════════╗');
     console.log('║         📊 BACKTEST RESULTS                 ║');
     console.log('╚══════════════════════════════════════════════╝\n');
@@ -284,9 +279,9 @@ async function main() {
 ║     Historical Validation Engine                    ║
 ╚══════════════════════════════════════════════════════╝
   `);
-    logger_js_1.logger.info('Generating mock historical fixtures for demonstration...');
+    logger.info('Generating mock historical fixtures for demonstration...');
     const mockFixtures = generateMockHistoricalFixtures(50);
-    logger_js_1.logger.info(`Running backtest on ${mockFixtures.length} historical fixtures...\n`);
+    logger.info(`Running backtest on ${mockFixtures.length} historical fixtures...\n`);
     const result = await runBacktest(mockFixtures);
     printBacktestResults(result);
     console.log('✅ Backtest complete!');
@@ -295,7 +290,8 @@ async function main() {
 }
 // Run if executed directly
 main().catch(err => {
-    logger_js_1.logger.error(`Fatal error: ${err}`);
+    logger.error(`Fatal error: ${err}`);
     process.exit(1);
 });
+export { main };
 //# sourceMappingURL=index.js.map

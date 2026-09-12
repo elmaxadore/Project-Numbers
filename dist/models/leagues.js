@@ -1,15 +1,12 @@
-"use strict";
 // ============================================================
 // League Filter Configuration
 // Known high-opportunity leagues from the research paper
 // ============================================================
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.LEAGUE_XG_ADJUSTMENTS = exports.KNOWN_LEAGUES = void 0;
 /**
  * Leagues known to be suitable for Over/Under and BTTS betting
  * Based on empirical data from the research paper
  */
-exports.KNOWN_LEAGUES = [
+export const KNOWN_LEAGUES = [
     // Top-tier high-scoring leagues
     {
         id: 88,
@@ -135,7 +132,7 @@ exports.KNOWN_LEAGUES = [
  * League-specific xG baseline adjustments
  * Some leagues naturally produce higher/lower xG
  */
-exports.LEAGUE_XG_ADJUSTMENTS = {
+export const LEAGUE_XG_ADJUSTMENTS = {
     'Eredivisie': 0.15, // Slightly higher scoring than raw goals suggest
     'Bundesliga': 0.10,
     'Premier League': 0.0,

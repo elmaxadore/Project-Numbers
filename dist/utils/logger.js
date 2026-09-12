@@ -1,9 +1,6 @@
-"use strict";
 // ============================================================
 // Logger Utility for the Betting System
 // ============================================================
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.logger = void 0;
 class Logger {
     minLevel = 'info';
     logs = [];
@@ -68,5 +65,5 @@ class Logger {
         this.logs = [];
     }
 }
-exports.logger = new Logger();
+export const logger = new Logger();
 //# sourceMappingURL=logger.js.map

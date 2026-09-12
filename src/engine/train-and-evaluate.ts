@@ -17,6 +17,7 @@ import {
   DEFAULT_O25_WEIGHTS,
   DEFAULT_BTTS_WEIGHTS,
   ModelWeights,
+  saveModelToFile,
 } from './logistic-regression.js';
 import { runBacktest, printBacktestResults } from './backtesting/index.js';
 import { logger } from '../utils/logger.js';
@@ -251,6 +252,18 @@ async function main(): Promise<void> {
   } else {
     logger.warn('⚠️  Default models performed better in this run.');
     logger.warn('Note: Results may vary due to randomness in mock data.');
+  }
+
+  // Step 10: Save trained models to files for deployment
+  console.log('\n─── Saving Models for Deployment ───');
+  try {
+    await saveModelToFile(o25Ensemble, './dist/engine/o25-ensemble.bin');
+    await saveModelToFile(bttsEnsemble, './dist/engine/btts-ensemble.bin');
+    logger.success('✅ Models saved successfully!');
+    logger.info('   - ./dist/engine/o25-ensemble.bin');
+    logger.info('   - ./dist/engine/btts-ensemble.bin');
+  } catch (err) {
+    logger.error(`Failed to save models: ${err}`);
   }
 
   console.log('\n✅ Training and evaluation complete!\n');

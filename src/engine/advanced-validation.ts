@@ -1,4 +1,4 @@
-import { LogisticRegression } from './logistic-regression';
+import { LogisticRegression } from './logistic-regression.js';
 
 interface Dataset {
   X: number[][];

@@ -1,17 +1,10 @@
-"use strict";
 // ============================================================
 // 1xbet Odds Collector
 // Fetches odds from 1xbet via The Odds API (aggregates 1xbet)
 // and direct scraping of 1xbet public website
 // ============================================================
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.fetch1xbetFromOddsApi = fetch1xbetFromOddsApi;
-exports.fetch1xbetAllLeagues = fetch1xbetAllLeagues;
-exports.fetch1xbetDirect = fetch1xbetDirect;
-exports.collect1xbetOdds = collect1xbetOdds;
-exports.getOddsApiRequestCount = getOddsApiRequestCount;
-const config_js_1 = require("../config.js");
-const logger_js_1 = require("../utils/logger.js");
+import { CONFIG } from '../config.js';
+import { logger } from '../utils/logger.js';
 // ---- The Odds API (includes 1xbet odds) ----
 const ODDS_API_BASE = 'https://api.the-odds-api.com/v4';
 let oddsApiRequestCount = 0;
@@ -20,28 +13,28 @@ const ODDS_API_DAILY_LIMIT = 500;
  * Fetch 1xbet odds from The Odds API
  * 1xbet is listed as a bookmaker in their aggregation
  */
-async function fetch1xbetFromOddsApi(sport = 'soccer_epl', region = 'eu', markets = 'h2h,totals,btts') {
-    if (!config_js_1.CONFIG.oddsApiKey) {
-        logger_js_1.logger.warn('ODDS_API_KEY not configured. Skipping The Odds API.');
+export async function fetch1xbetFromOddsApi(sport = 'soccer_epl', region = 'eu', markets = 'h2h,totals,btts') {
+    if (!CONFIG.oddsApiKey) {
+        logger.warn('ODDS_API_KEY not configured. Skipping The Odds API.');
         return [];
     }
     if (oddsApiRequestCount >= ODDS_API_DAILY_LIMIT) {
-        logger_js_1.logger.warn('The Odds API daily limit reached.');
+        logger.warn('The Odds API daily limit reached.');
         return [];
     }
-    const url = `${ODDS_API_BASE}/sports/${sport}/odds/?apiKey=${config_js_1.CONFIG.oddsApiKey}&regions=${region}&markets=${markets}&bookmakers=1xbet&oddsFormat=decimal`;
+    const url = `${ODDS_API_BASE}/sports/${sport}/odds/?apiKey=${CONFIG.oddsApiKey}&regions=${region}&markets=${markets}&bookmakers=1xbet&oddsFormat=decimal`;
     try {
         const response = await fetch(url);
         oddsApiRequestCount++;
         if (!response.ok) {
-            logger_js_1.logger.error(`The Odds API error: ${response.status}`);
+            logger.error(`The Odds API error: ${response.status}`);
             return [];
         }
         const data = await response.json();
         return parseOddsApiEvents(data);
     }
     catch (err) {
-        logger_js_1.logger.error(`The Odds API request failed: ${err}`);
+        logger.error(`The Odds API request failed: ${err}`);
         return [];
     }
 }
@@ -97,13 +90,13 @@ function parseOddsApiEvents(events) {
             results.push(odds);
         }
     }
-    logger_js_1.logger.info(`Fetched 1xbet odds for ${events.length} events from The Odds API`);
+    logger.info(`Fetched 1xbet odds for ${events.length} events from The Odds API`);
     return results;
 }
 /**
  * Fetch 1xbet odds for multiple sports/leagues
  */
-async function fetch1xbetAllLeagues() {
+export async function fetch1xbetAllLeagues() {
     const leagues = [
         'soccer_epl', // Premier League
         'soccer_germany_bundesliga',
@@ -119,7 +112,7 @@ async function fetch1xbetAllLeagues() {
         const odds = await fetch1xbetFromOddsApi(league);
         allOdds.push(...odds);
     }
-    logger_js_1.logger.info(`Total 1xbet odds collected: ${allOdds.length} entries`);
+    logger.info(`Total 1xbet odds collected: ${allOdds.length} entries`);
     return allOdds;
 }
 // ---- Direct 1xbet Scraping (fallback) ----
@@ -128,7 +121,7 @@ const XBET_BASE = 'https://1xbet.com';
  * Scrape odds directly from 1xbet public website
  * This uses the public-facing odds pages
  */
-async function fetch1xbetDirect(leagueId) {
+export async function fetch1xbetDirect(leagueId) {
     const results = [];
     try {
         // 1xbet's public API endpoint for live/pre-match odds
@@ -141,7 +134,7 @@ async function fetch1xbetDirect(leagueId) {
             },
         });
         if (!response.ok) {
-            logger_js_1.logger.warn(`1xbet direct scrape failed: ${response.status}`);
+            logger.warn(`1xbet direct scrape failed: ${response.status}`);
             return results;
         }
         const text = await response.text();
@@ -155,10 +148,10 @@ async function fetch1xbetDirect(leagueId) {
                     results.push(odds);
             }
         }
-        logger_js_1.logger.info(`Scraped ${results.length} odds from1xbet directly`);
+        logger.info(`Scraped ${results.length} odds from1xbet directly`);
     }
     catch (err) {
-        logger_js_1.logger.warn(`1xbet direct scraping not available: ${err}`);
+        logger.warn(`1xbet direct scraping not available: ${err}`);
     }
     return results;
 }
@@ -182,8 +175,8 @@ function parseXBetEvent(event) {
 /**
  * Main entry: try The Odds API first, fall back to direct scraping
  */
-async function collect1xbetOdds(leagueId) {
-    logger_js_1.logger.info('Collecting 1xbet odds...');
+export async function collect1xbetOdds(leagueId) {
+    logger.info('Collecting 1xbet odds...');
     // Try The Odds API first (more reliable)
     const apiOdds = await fetch1xbetFromOddsApi();
     if (apiOdds.length > 0) {
@@ -196,7 +189,7 @@ async function collect1xbetOdds(leagueId) {
 /**
  * Get the number of API requests used today
  */
-function getOddsApiRequestCount() {
+export function getOddsApiRequestCount() {
     return oddsApiRequestCount;
 }
 //# sourceMappingURL=one-xbet.js.map

@@ -8,7 +8,7 @@
  * - Comprehensive evaluation metrics
  */
 
-import { AdvancedTimeSeriesTrainer } from './engine/advanced-time-series-trainer';
+import { AdvancedTimeSeriesTrainer } from './engine/advanced-time-series-trainer.js';
 
 async function main() {
   console.log('\n' + '='.repeat(70));

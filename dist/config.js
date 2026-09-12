@@ -1,10 +1,6 @@
-"use strict";
 // ============================================================
 // System Configuration
 // ============================================================
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.CONFIG = void 0;
-exports.validateConfig = validateConfig;
 function env(key, fallback = '') {
     return process.env[key] || fallback;
 }
@@ -12,7 +8,7 @@ function envNum(key, fallback) {
     const val = process.env[key];
     return val ? parseFloat(val) : fallback;
 }
-exports.CONFIG = {
+export const CONFIG = {
     // API keys from environment
     apiSportsKey: env('API_SPORTS_KEY'),
     oddsPapiKey: env('ODDS_PAPI_KEY'),
@@ -41,11 +37,11 @@ exports.CONFIG = {
 /**
  * Validate that critical config is present
  */
-function validateConfig() {
+export function validateConfig() {
     const missing = [];
-    if (!exports.CONFIG.apiSportsKey)
+    if (!CONFIG.apiSportsKey)
         missing.push('API_SPORTS_KEY');
-    if (!exports.CONFIG.ballersKey)
+    if (!CONFIG.ballersKey)
         missing.push('BALLERS_KEY');
     return {
         valid: missing.length === 0,

@@ -1,6 +1,5 @@
-"use strict";
 // ============================================================
 // Core Types & Interfaces for the Football Betting System
 // ============================================================
-Object.defineProperty(exports, "__esModule", { value: true });
+export {};
 //# sourceMappingURL=types.js.map

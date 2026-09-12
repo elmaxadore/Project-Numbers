@@ -1,31 +1,21 @@
-"use strict";
 // ============================================================
 // API-Sports Client (api-football.com via RapidAPI)
 // Free tier: 100 requests/day
 // Use for: Historical fixtures, stats, and backtesting data
 // ============================================================
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.getFixtures = getFixtures;
-exports.getFixturesByDate = getFixturesByDate;
-exports.getTeamStatistics = getTeamStatistics;
-exports.getStandings = getStandings;
-exports.getOdds = getOdds;
-exports.getHeadToHead = getHeadToHead;
-exports.getRequestCount = getRequestCount;
-exports.resetRequestCount = resetRequestCount;
-const config_js_1 = require("../config.js");
-const logger_js_1 = require("../utils/logger.js");
+import { CONFIG } from '../config.js';
+import { logger } from '../utils/logger.js';
 const BASE_URL = 'https://v3.football.api-sports.io';
 // Rate limiter: max 100 requests/day
 let requestCount = 0;
 const DAILY_LIMIT = 100;
 async function apiRequest(endpoint, params = {}) {
     if (requestCount >= DAILY_LIMIT) {
-        logger_js_1.logger.warn(`API-Sports daily limit reached (${DAILY_LIMIT} requests). Skipping.`);
+        logger.warn(`API-Sports daily limit reached (${DAILY_LIMIT} requests). Skipping.`);
         return null;
     }
-    if (!config_js_1.CONFIG.apiSportsKey) {
-        logger_js_1.logger.warn('API_SPORTS_KEY not configured. Skipping API-Sports request.');
+    if (!CONFIG.apiSportsKey) {
+        logger.warn('API_SPORTS_KEY not configured. Skipping API-Sports request.');
         return null;
     }
     const queryString = new URLSearchParams(params).toString();
@@ -33,27 +23,27 @@ async function apiRequest(endpoint, params = {}) {
     try {
         const response = await fetch(url, {
             headers: {
-                'x-rapidapi-key': config_js_1.CONFIG.apiSportsKey,
+                'x-rapidapi-key': CONFIG.apiSportsKey,
                 'x-rapidapi-host': 'v3.football.api-sports.io',
             },
         });
         requestCount++;
         if (!response.ok) {
-            logger_js_1.logger.error(`API-Sports error: ${response.status} ${response.statusText}`);
+            logger.error(`API-Sports error: ${response.status} ${response.statusText}`);
             return null;
         }
         const data = await response.json();
         return data.response;
     }
     catch (err) {
-        logger_js_1.logger.error(`API-Sports request failed: ${err}`);
+        logger.error(`API-Sports request failed: ${err}`);
         return null;
     }
 }
 /**
  * Get fixtures for a league in a specific season
  */
-async function getFixtures(leagueId, season) {
+export async function getFixtures(leagueId, season) {
     const result = await apiRequest('/fixtures', {
         league: String(leagueId),
         season: String(season),
@@ -63,7 +53,7 @@ async function getFixtures(leagueId, season) {
 /**
  * Get fixtures for a specific date range
  */
-async function getFixturesByDate(from, to, leagueId) {
+export async function getFixturesByDate(from, to, leagueId) {
     const params = { from, to };
     if (leagueId)
         params.league = String(leagueId);
@@ -73,7 +63,7 @@ async function getFixturesByDate(from, to, leagueId) {
 /**
  * Get team statistics for a league/season
  */
-async function getTeamStatistics(leagueId, season, teamId) {
+export async function getTeamStatistics(leagueId, season, teamId) {
     const result = await apiRequest('/teams/statistics', {
         league: String(leagueId),
         season: String(season),
@@ -84,7 +74,7 @@ async function getTeamStatistics(leagueId, season, teamId) {
 /**
  * Get league standings
  */
-async function getStandings(leagueId, season) {
+export async function getStandings(leagueId, season) {
     const result = await apiRequest('/standings', {
         league: String(leagueId),
         season: String(season),
@@ -94,7 +84,7 @@ async function getStandings(leagueId, season) {
 /**
  * Get pre-match odds for upcoming fixtures
  */
-async function getOdds(leagueId, season, fixtureId) {
+export async function getOdds(leagueId, season, fixtureId) {
     const params = {
         league: String(leagueId),
         season: String(season),
@@ -108,7 +98,7 @@ async function getOdds(leagueId, season, fixtureId) {
 /**
  * Get head-to-head results between two teams
  */
-async function getHeadToHead(homeTeamId, awayTeamId) {
+export async function getHeadToHead(homeTeamId, awayTeamId) {
     const h2h = `${homeTeamId}-${awayTeamId}`;
     const result = await apiRequest('/fixtures/headtohead', {
         h2h,
@@ -118,13 +108,13 @@ async function getHeadToHead(homeTeamId, awayTeamId) {
 /**
  * Get the number of API requests used today
  */
-function getRequestCount() {
+export function getRequestCount() {
     return requestCount;
 }
 /**
  * Reset the daily request counter
  */
-function resetRequestCount() {
+export function resetRequestCount() {
     requestCount = 0;
 }
 //# sourceMappingURL=api-sports.js.map

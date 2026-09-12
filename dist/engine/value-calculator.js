@@ -1,21 +1,15 @@
-"use strict";
 // ============================================================
 // Phase 3: Value Calculation and Filtering
 // Compares model probability vs bookmaker implied probability
 // to identify +EV bets
 // ============================================================
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.findBestOdds = findBestOdds;
-exports.analyzeValue = analyzeValue;
-exports.analyzeAllMarkets = analyzeAllMarkets;
-exports.filterWithValueEdge = filterWithValueEdge;
-const config_js_1 = require("../config.js");
-const math_js_1 = require("../utils/math.js");
-const logger_js_1 = require("../utils/logger.js");
+import { CONFIG } from '../config.js';
+import { oddsToImpliedProbability, calculateValue } from '../utils/math.js';
+import { logger } from '../utils/logger.js';
 /**
  * Find the best odds across all bookmakers for a specific market
  */
-function findBestOdds(odds, market) {
+export function findBestOdds(odds, market) {
     let bestOdds = 0;
     let bestBookmaker = '';
     for (const bookmakerOdds of odds) {
@@ -52,14 +46,14 @@ function getMarketOdds(odds, market) {
 /**
  * Perform value analysis for a single fixture and market
  */
-function analyzeValue(prediction, odds, config = config_js_1.CONFIG) {
+export function analyzeValue(prediction, odds, config = CONFIG) {
     const best = findBestOdds(odds, prediction.market);
     if (!best) {
-        logger_js_1.logger.debug(`No odds found for fixture ${prediction.fixtureId}, market ${prediction.market}`);
+        logger.debug(`No odds found for fixture ${prediction.fixtureId}, market ${prediction.market}`);
         return null;
     }
-    const impliedProbability = (0, math_js_1.oddsToImpliedProbability)(best.bestOdds);
-    const value = (0, math_js_1.calculateValue)(prediction.modelProbability, best.bestOdds);
+    const impliedProbability = oddsToImpliedProbability(best.bestOdds);
+    const value = calculateValue(prediction.modelProbability, best.bestOdds);
     return {
         fixtureId: prediction.fixtureId,
         market: prediction.market,
@@ -74,7 +68,7 @@ function analyzeValue(prediction, odds, config = config_js_1.CONFIG) {
 /**
  * Analyze value across all markets for a fixture
  */
-function analyzeAllMarkets(predictions, odds, config = config_js_1.CONFIG) {
+export function analyzeAllMarkets(predictions, odds, config = CONFIG) {
     const results = [];
     for (const prediction of predictions) {
         const analysis = analyzeValue(prediction, odds, config);
@@ -87,16 +81,16 @@ function analyzeAllMarkets(predictions, odds, config = config_js_1.CONFIG) {
 /**
  * Filter fixtures that have passed all checks and have value
  */
-function filterWithValueEdge(packages, predictions, config = config_js_1.CONFIG) {
+export function filterWithValueEdge(packages, predictions, config = CONFIG) {
     const results = [];
     for (const pkg of packages) {
         // Pre-filters
         if (!pkg.leagueFilterPassed) {
-            logger_js_1.logger.debug(`Fixture ${pkg.fixture.id}: Failed league filter`);
+            logger.debug(`Fixture ${pkg.fixture.id}: Failed league filter`);
             continue;
         }
         if (!pkg.sampleSizeFilterPassed) {
-            logger_js_1.logger.debug(`Fixture ${pkg.fixture.id}: Failed sample size filter`);
+            logger.debug(`Fixture ${pkg.fixture.id}: Failed sample size filter`);
             continue;
         }
         // Find prediction for this fixture
@@ -120,7 +114,7 @@ function filterWithValueEdge(packages, predictions, config = config_js_1.CONFIG)
     }
     // Sort by value (highest edge first)
     results.sort((a, b) => b.value.value - a.value.value);
-    logger_js_1.logger.info(`Found ${results.length} fixtures with positive value edge`);
+    logger.info(`Found ${results.length} fixtures with positive value edge`);
     return results;
 }
 //# sourceMappingURL=value-calculator.js.map

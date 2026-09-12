@@ -1,4 +1,4 @@
-import { MatchData, TeamStats, apiFetcher } from './sports-scraper';
+import { MatchData, TeamStats, apiFetcher } from './sports-scraper.js';
 
 /**
  * Multi-Sport Data Generator

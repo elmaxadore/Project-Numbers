@@ -1,72 +1,35 @@
 ```
-# Build artifacts
+# Compiled and build artifacts
+*.pyc
+__pycache__/
+*.o
+*.obj
+*.bin
 dist/
 build/
-*.js
-*.js.map
-*.d.ts
-*.d.ts.map
+target/
 
 # Dependencies
 node_modules/
-
-# Environment
+.venv/
+venv/
 .env
 .env.local
 *.env.*
-
-# Editors
-.vscode/
-.idea/
 
 # Logs and temp files
 *.log
 *.tmp
 *.swp
 
-# Python
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
+# Editors
+.vscode/
+.idea/
 
-# Java/Scala
-*.class
-*.jar
-*.war
-*.ear
-target/
-.gradle/
-
-# C/C++
-*.o
-*.a
-*.so
-*.dll
-*.exe
-*.out
-
-# Compression
-*.zip
-*.gz
-*.tar
-*.tgz
-*.bz2
-*.xz
-*.7z
-*.rar
-*.zst
-*.lz4
-*.lzh
-*.cab
-*.arj
-*.rpm
-*.deb
-*.Z
-*.lz
-*.lzo
-
-# System
+# OS generated files
 .DS_Store
 Thumbs.db
+
+# Data cache (if it contains temporary/generated data)
+data-cache/
 ```
