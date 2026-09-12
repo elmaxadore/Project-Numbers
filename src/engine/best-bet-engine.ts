@@ -4,7 +4,7 @@
  */
 
 import { TodaysFixture } from '../data/todays-fixtures-fetcher.js';
-import { getOdds, ApiOdds } from '../api/api-sports.js';
+import { getOdds, getTeamStatistics, ApiOdds } from '../api/api-sports.js';
 import { CONFIG } from '../config.js';
 import { logger } from '../utils/logger.js';
 import {
@@ -37,50 +37,60 @@ export interface QualifiedBet {
 }
 
 /**
- * Create a fixture data package from a fixture with estimated stats
- * In production, you would fetch real team stats from API
+ * Create a fixture data package from a fixture with real stats fetched from API
  */
-function createFixtureDataPackage(fixture: TodaysFixture): FixtureDataPackage {
-  // Throw error if we don't have real odds - no fallback to fake predictions
-  // This ensures we only make predictions when we have REAL data
-  throw new Error(`Cannot create prediction package for ${fixture.homeTeam.name} vs ${fixture.awayTeam.name}: Real team statistics and odds data required but not available. Ensure API_SPORTS_KEY and THE_ODDS_API secrets are configured.`);
+async function createFixtureDataPackage(fixture: TodaysFixture): Promise<FixtureDataPackage> {
+  if (!CONFIG.apiSportsKey) {
+    throw new Error(`API_SPORTS_KEY not configured. Cannot fetch real statistics for ${fixture.homeTeam.name} vs ${fixture.awayTeam.name}.`);
+  }
+
+  const currentYear = new Date().getFullYear();
   
-  // Code below unreachable - kept for reference if implementing real stats fetch
-  /*
+  // Fetch real team statistics from API-Sports
+  const [homeStats, awayStats] = await Promise.all([
+    getTeamStatistics(fixture.leagueId, currentYear, fixture.homeTeam.id),
+    getTeamStatistics(fixture.leagueId, currentYear, fixture.awayTeam.id)
+  ]);
+
+  if (!homeStats || !awayStats) {
+    throw new Error(`Failed to fetch real statistics for ${fixture.homeTeam.name} vs ${fixture.awayTeam.name}. API returned no data.`);
+  }
+
+  // Convert API stats to our internal format
   const homeTeamStats: TeamVenueStats = {
     teamId: fixture.homeTeam.id,
     teamName: fixture.homeTeam.name,
     venue: 'home',
-    matchesPlayed: 10,
-    goalsScored: 15,
-    goalsConceded: 12,
-    avgGoalsScored: 1.5,
-    avgGoalsConceded: 1.2,
-    xG: 1.5,
-    xGA: 1.2,
-    cleanSheetRate: 0.3,
-    failedToScoreRate: 0.2,
-    bttsRate: 0.5,
-    over25Rate: 0.6,
-    over15Rate: 0.8,
+    matchesPlayed: homeStats.fixtures.played.home || homeStats.fixtures.played.total,
+    goalsScored: homeStats.goals.for.total.home || homeStats.goals.for.total.total,
+    goalsConceded: homeStats.goals.against.total.home || homeStats.goals.against.total.total,
+    avgGoalsScored: parseFloat(homeStats.goals.for.average.home) || parseFloat(homeStats.goals.for.average.total) || 0,
+    avgGoalsConceded: parseFloat(homeStats.goals.against.average.home) || parseFloat(homeStats.goals.against.average.total) || 0,
+    xG: parseFloat(homeStats.goals.for.average.home) || parseFloat(homeStats.goals.for.average.total) || 0,
+    xGA: parseFloat(homeStats.goals.against.average.home) || parseFloat(homeStats.goals.against.average.total) || 0,
+    cleanSheetRate: homeStats.clean_sheet.home / (homeStats.fixtures.played.home || 1) || 0,
+    failedToScoreRate: homeStats.failed_to_score.home / (homeStats.fixtures.played.home || 1) || 0,
+    bttsRate: homeStats.both_teams_to_score.total / (homeStats.fixtures.played.total || 1) || 0,
+    over25Rate: 0, // Will be calculated from historical data
+    over15Rate: 0, // Will be calculated from historical data
   };
 
   const awayTeamStats: TeamVenueStats = {
     teamId: fixture.awayTeam.id,
     teamName: fixture.awayTeam.name,
     venue: 'away',
-    matchesPlayed: 10,
-    goalsScored: 13,
-    goalsConceded: 14,
-    avgGoalsScored: 1.3,
-    avgGoalsConceded: 1.4,
-    xG: 1.3,
-    xGA: 1.4,
-    cleanSheetRate: 0.25,
-    failedToScoreRate: 0.25,
-    bttsRate: 0.55,
-    over25Rate: 0.55,
-    over15Rate: 0.75,
+    matchesPlayed: awayStats.fixtures.played.away || awayStats.fixtures.played.total,
+    goalsScored: awayStats.goals.for.total.away || awayStats.goals.for.total.total,
+    goalsConceded: awayStats.goals.against.total.away || awayStats.goals.against.total.total,
+    avgGoalsScored: parseFloat(awayStats.goals.for.average.away) || parseFloat(awayStats.goals.for.average.total) || 0,
+    avgGoalsConceded: parseFloat(awayStats.goals.against.average.away) || parseFloat(awayStats.goals.against.average.total) || 0,
+    xG: parseFloat(awayStats.goals.for.average.away) || parseFloat(awayStats.goals.for.average.total) || 0,
+    xGA: parseFloat(awayStats.goals.against.average.away) || parseFloat(awayStats.goals.against.average.total) || 0,
+    cleanSheetRate: awayStats.clean_sheet.away / (awayStats.fixtures.played.away || 1) || 0,
+    failedToScoreRate: awayStats.failed_to_score.away / (awayStats.fixtures.played.away || 1) || 0,
+    bttsRate: awayStats.both_teams_to_score.total / (awayStats.fixtures.played.total || 1) || 0,
+    over25Rate: 0,
+    over15Rate: 0,
   };
 
   const combinedExpectedGoals = homeTeamStats.xG + awayTeamStats.xG;
@@ -116,7 +126,6 @@ function createFixtureDataPackage(fixture: TodaysFixture): FixtureDataPackage {
       awayFailedToScoreRate: awayTeamStats.failedToScoreRate,
     },
   };
-  */
 }
 
 /**
@@ -189,7 +198,7 @@ export async function findQualifiedBets(
   for (const fixture of fixtures) {
     try {
       // Create fixture data package - will throw if real data not available
-      const pkg = createFixtureDataPackage(fixture);
+      const pkg = await createFixtureDataPackage(fixture);
 
       // Get predictions for this fixture
       const predictions = predictFixture(pkg, o25Model, bttsModel);
