@@ -52,7 +52,7 @@ class TelegramBotService {
     }
     formatPrediction(result) {
         if (!result) {
-            return `🚫 **No Viable Bets Today**\n\nThe model found no opportunities with positive Expected Value.\n\n*Market Status:* Scanned all major leagues.\n*Strategy:* Preserving capital.`;
+            throw new Error('No viable bets found today. The model found no opportunities with positive Expected Value after scanning all fixtures and odds.');
         }
         const confidenceEmoji = result.confidence > 80 ? '🔥' : result.confidence > 65 ? '✅' : '⚠️';
         return `

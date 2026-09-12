@@ -6,16 +6,62 @@ dist/
 # Dependencies
 node_modules/
 
-# Logs and temp files
-*.log
-*.tmp
-
 # Environment
 .env
 .env.local
 *.env.*
 
-# Editors
+# Logs and temporary files
+*.log
+*.tmp
+
+# Editor/IDE
 .vscode/
 .idea/
+*.swp
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Compiled files
+*.o
+*.obj
+*.exe
+*.dll
+*.so
+*.a
+*.out
+
+# Distribution / Packaging
+*.tar.gz
+*.zip
+*.gz
+*.tar
+*.tgz
+*.bz2
+*.xz
+*.7z
+*.rar
+*.zst
+*.lz4
+*.lzh
+*.cab
+*.arj
+*.rpm
+*.deb
+*.Z
+*.lz
+*.lzo
+
+# Coverage
+coverage/
+htmlcov/
+.coverage
+
+# Testing
+.mypy_cache/
+.pytest_cache/
 ```
