@@ -41,7 +41,12 @@ export interface QualifiedBet {
  * In production, you would fetch real team stats from API
  */
 function createFixtureDataPackage(fixture: TodaysFixture): FixtureDataPackage {
-  // Default expected stats (in production, fetch from API or calculate from historical data)
+  // Throw error if we don't have real odds - no fallback to fake predictions
+  // This ensures we only make predictions when we have REAL data
+  throw new Error(`Cannot create prediction package for ${fixture.homeTeam.name} vs ${fixture.awayTeam.name}: Real team statistics and odds data required but not available. Ensure API_SPORTS_KEY and THE_ODDS_API secrets are configured.`);
+  
+  // Code below unreachable - kept for reference if implementing real stats fetch
+  /*
   const homeTeamStats: TeamVenueStats = {
     teamId: fixture.homeTeam.id,
     teamName: fixture.homeTeam.name,
@@ -111,6 +116,7 @@ function createFixtureDataPackage(fixture: TodaysFixture): FixtureDataPackage {
       awayFailedToScoreRate: awayTeamStats.failedToScoreRate,
     },
   };
+  */
 }
 
 /**
@@ -182,7 +188,7 @@ export async function findQualifiedBets(
 
   for (const fixture of fixtures) {
     try {
-      // Create fixture data package
+      // Create fixture data package - will throw if real data not available
       const pkg = createFixtureDataPackage(fixture);
 
       // Get predictions for this fixture
@@ -241,7 +247,11 @@ export async function findQualifiedBets(
           });
         }
       }
-    } catch (err) {
+    } catch (err: any) {
+      // Re-throw errors about missing real data - don't swallow them
+      if (err.message && err.message.includes('Real team statistics and odds data required')) {
+        throw err;
+      }
       logger.error(`Error processing fixture ${fixture.id}: ${err}`);
     }
   }
