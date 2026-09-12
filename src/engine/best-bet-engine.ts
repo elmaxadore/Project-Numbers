@@ -204,9 +204,9 @@ export async function findQualifiedBets(
         const modelProb = pred.modelProbability;
         if (modelProb < CONFIG.minConfidence) continue;
 
-        // Get odds for this market
-        let bestOdd = 1.85; // default fallback
-        let impliedProb = 1 / bestOdd;
+        // Get odds for this market - require real odds, no fallback
+        let bestOdd: number | null = null;
+        let impliedProb: number | null = null;
 
         const matchingOdds = marketOdds.find(o => o.market === pred.market);
         if (matchingOdds) {
@@ -215,8 +215,15 @@ export async function findQualifiedBets(
           } else if (pred.market === 'btts_yes' && matchingOdds.yesOdds) {
             bestOdd = matchingOdds.yesOdds;
           }
-          impliedProb = 1 / bestOdd;
         }
+        
+        // Skip if no real odds found for this market
+        if (!bestOdd) {
+          logger.debug(`No odds available for ${pred.market} in fixture ${fixture.id}`);
+          continue;
+        }
+        
+        impliedProb = 1 / bestOdd;
 
         // Calculate Expected Value
         const ev = (modelProb * bestOdd - 1) * 100;
