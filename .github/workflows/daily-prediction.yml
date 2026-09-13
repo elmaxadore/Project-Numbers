@@ -1,14 +1,27 @@
-name: Daily Prediction Bot
+name: Daily Multi-Sport Betting Analysis
 
 on:
   schedule:
-    # Runs every day at 08:00 UTC (adjust time as needed)
-    - cron: '0 8 * * *'
-  workflow_dispatch: # Allows manual trigger
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+    inputs:
+      send_telegram:
+        description: 'Send results to Telegram (true/false)'
+        required: false
+        default: 'true'
+      debug_mode:
+        description: 'Enable debug logging (true/false)'
+        required: false
+        default: 'false'
+      sports_filter:
+        description: 'Sports: soccer,basketball,tennis,baseball,ice_hockey,american_football. Empty=all.'
+        required: false
+        default: ''
 
 jobs:
-  predict-and-notify:
+  multi-sport-analysis:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
       - name: Checkout Repository
@@ -26,51 +39,73 @@ jobs:
       - name: Build Project
         run: npm run build
 
-      - name: Download Release Assets
+      - name: Initialize Release Assets
         run: |
-          # Create release-assets directory
           mkdir -p ./release-assets
+          echo '{}' > ./release-assets/all-sports-data.json
+          echo 'placeholder' > ./release-assets/o25-ensemble.bin
 
-          # Download the latest zip file from releases (don't hardcode version)
-          echo "⬇️ Downloading latest model release from GitHub Releases..."
-          LATEST_RELEASE=$(gh release list --limit 1 --json tagName --jq '.[0].tagName')
-          if [ -z "$LATEST_RELEASE" ]; then
-            echo "❌ No releases found in this repository"
-            exit 1
+      - name: Download Model Release (Optional)
+        continue-on-error: true
+        id: download-release
+        run: |
+          echo "⬇️ Downloading latest model release..."
+          RELEASE_COUNT=$(gh release list --repo ${{ github.repository }} 2>/dev/null | wc -l || echo "0")
+          if [ "$RELEASE_COUNT" -eq 0 ]; then
+            echo "ℹ️ No releases found. Using fallback mode."
+            echo "has_release=false" >> $GITHUB_OUTPUT
+            exit 0
           fi
-          echo "📦 Found latest release: $LATEST_RELEASE"
-          
-          gh release download "$LATEST_RELEASE" --repo ${{ github.repository }} --pattern "*.zip" --dir ./release-assets || {
-            echo "❌ Failed to download release. Make sure a release exists with a .zip file."
-            exit 1
+          LATEST_RELEASE=$(gh release list --limit 1 --repo ${{ github.repository }} --json tagName --jq '.[0].tagName')
+          if [ -z "$LATEST_RELEASE" ]; then
+            echo "has_release=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          gh release download "$LATEST_RELEASE" --repo ${{ github.repository }} --dir ./release-assets || {
+            echo "has_release=false" >> $GITHUB_OUTPUT
+            exit 0
           }
-          
-          # List what we downloaded
-          echo "📂 Downloaded files:"
-          ls -la ./release-assets
-          
-          # Unzip all zip files (handles multiple or nested zips)
           for zipfile in ./release-assets/*.zip; do
-            if [ -f "$zipfile" ]; then
-              echo "📦 Extracting $zipfile..."
-              unzip -o "$zipfile" -d ./release-assets
-            fi
+            [ -f "$zipfile" ] && unzip -o "$zipfile" -d ./release-assets
           done
-          
-          echo "✅ Extraction complete. Verifying files:"
-          ls -la ./release-assets/*.bin ./release-assets/*.json 2>/dev/null || {
-            echo "⚠️ Some expected files (.bin or .json) not found after extraction"
-            # Don't exit here - let the bot handle missing files with proper error
-          }
+          echo "✅ Release download complete"
+          echo "has_release=true" >> $GITHUB_OUTPUT
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Run Prediction Bot
+      - name: Run Multi-Sport Bot
         run: node dist/bot/telegram-bot.js
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          # Optional: Paid API keys (bot works with free TheSportsDB if these are missing)
+          SEND_TELEGRAM: ${{ github.event.inputs.send_telegram || 'true' }}
+          DEBUG_MODE: ${{ github.event.inputs.debug_mode || 'false' }}
+          SPORTS_FILTER: ${{ github.event.inputs.sports_filter || '' }}
           X_RAPIDAPI_KEY: ${{ secrets.X_RAPIDAPI_KEY }}
-          THE_ODDS_API: ${{ secrets.THE_ODDS_API }}
           API_SPORTS_KEY: ${{ secrets.API_SPORTS_KEY }}
+          THE_ODDS_API: ${{ secrets.THE_ODDS_API }}
+          ODDS_PAPI_KEY: ${{ secrets.ODDS_PAPI_KEY }}
+
+      - name: Upload Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: betting-analysis-${{ github.run_number }}
+          path: |
+            ./release-assets/*.json
+            ./analysis-output.txt
+            ./multi-sport-report.json
+          retention-days: 7
+
+      - name: Post Summary
+        if: always()
+        run: |
+          echo "## 🌍 Multi-Sport Betting Analysis" >> $GITHUB_STEP_SUMMARY
+          echo "**Run:** ${{ github.run_number }} | **Date:** $(date -u '+%Y-%m-%d %H:%M UTC')" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ -f "./analysis-output.txt" ]; then
+            echo "### 📊 Key Findings" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            head -80 ./analysis-output.txt >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          fi

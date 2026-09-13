@@ -1,18 +1,13 @@
 ```
-# Compiled and build artifacts
+# Build artifacts
+dist/
 *.js
 *.js.map
 *.d.ts
 *.d.ts.map
-dist/
-build/
 
 # Dependencies
 node_modules/
-
-# Logs and temp files
-*.log
-*.tmp
 
 # Environment
 .env
@@ -22,4 +17,11 @@ node_modules/
 # Editors
 .vscode/
 .idea/
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.swp
 ```

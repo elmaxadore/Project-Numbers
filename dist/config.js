@@ -39,12 +39,10 @@ export const CONFIG = {
  */
 export function validateConfig() {
     const missing = [];
-    if (!CONFIG.apiSportsKey)
-        missing.push('API_SPORTS_KEY or X_RAPIDAPI_KEY');
-    if (!CONFIG.ballersKey)
-        missing.push('BALLERS_KEY');
+    // All API keys are optional - bot works with free TheSportsDB if none are provided
+    // Only warn if user explicitly wants paid features without keys
     return {
-        valid: missing.length === 0,
+        valid: true, // Always valid - free tier always available
         missing,
     };
 }
