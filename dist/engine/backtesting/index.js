@@ -275,18 +275,23 @@ function generateMockHistoricalFixtures(count = 50) {
 async function main() {
     console.log(`
 ╔══════════════════════════════════════════════════════╗
-║     📊 Freebuff Backtesting Harness                 ║
-║     Historical Validation Engine                    ║
+║     📊 Freebuff Backtesting Harness (DEMO MODE)     ║
+║     WARNING: Uses mock data for demonstration       ║
+║     NOT FOR PRODUCTION USE                          ║
 ╚══════════════════════════════════════════════════════╝
   `);
+    logger.warn('⚠️  WARNING: This backtest uses MOCK DATA for demonstration only.');
+    logger.warn('⚠️  DO NOT use these results for real betting decisions.');
+    logger.warn('⚠️  For production backtesting, connect to real historical APIs.');
+    logger.warn('');
     logger.info('Generating mock historical fixtures for demonstration...');
     const mockFixtures = generateMockHistoricalFixtures(50);
     logger.info(`Running backtest on ${mockFixtures.length} historical fixtures...\n`);
     const result = await runBacktest(mockFixtures);
     printBacktestResults(result);
-    console.log('✅ Backtest complete!');
-    console.log('Note: This is a demo with mock data.');
-    console.log('Connect to real historical APIs for production backtesting.\n');
+    console.log('✅ Demo backtest complete!');
+    console.log('⚠️  NOTE: Results are based on MOCK DATA and should not be used for real betting.');
+    console.log('💡  Connect to real historical APIs (API-Sports, Football-Data.org) for production backtesting.\n');
 }
 // Run if executed directly
 main().catch(err => {

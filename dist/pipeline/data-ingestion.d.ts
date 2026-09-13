@@ -8,7 +8,8 @@ export declare function passesLeagueFilter(avgGoals: number, bttsRate: number): 
 };
 /**
  * Fetch upcoming fixtures for given leagues
- * In production, this would call API-Sports or similar
+ * PRODUCTION READY: Uses real API calls via todays-fixtures-fetcher
+ * This legacy function is kept for backward compatibility but should not be used in production
  */
 export declare function fetchUpcomingFixtures(leagueIds: number[], season: number): Promise<Fixture[]>;
 /**
