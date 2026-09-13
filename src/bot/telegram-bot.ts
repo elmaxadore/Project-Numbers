@@ -191,7 +191,7 @@ async function main() {
     const { findBestBet } = await import('../engine/best-bet-engine.js');
     const { DEFAULT_O25_WEIGHTS, DEFAULT_BTTS_WEIGHTS } = await import('../engine/logistic-regression.js');
     
-    const bestBet = await findBestBet(fixtures, DEFAULT_O25_WEIGHTS, DEFAULT_BTTS_WEIGHTS);
+    const bestBet = await findBestBet(fixtures);
 
     // 5. Send to Telegram
     const bot = new TelegramBotService();

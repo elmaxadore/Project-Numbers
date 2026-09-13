@@ -1,6 +1,6 @@
 /**
  * Today's Fixtures Fetcher
- * Fetches real upcoming matches for today using API-Sports (RapidAPI)
+ * Fetches real upcoming matches using API-Sports (RapidAPI) or TheSportsDB (free fallback)
  */
 export interface TodaysFixture {
     id: number;
@@ -19,13 +19,9 @@ export interface TodaysFixture {
     status: 'scheduled' | 'live' | 'finished';
 }
 /**
- * Fetch all fixtures scheduled for today
- * Throws error if API key is missing or API call fails
- * Returns empty array only if API succeeds but no fixtures exist for today
+ * Fetch all fixtures scheduled for today. If none found, searches next 7 days.
+ * Tries API-Sports first (if key available), then falls back to TheSportsDB (free)
+ * Throws error only if both sources fail
  */
 export declare function fetchTodaysFixtures(): Promise<TodaysFixture[]>;
-/**
- * Fetch fixtures for a specific league
- */
-export declare function fetchFixturesForLeague(leagueId: number, date?: string): Promise<TodaysFixture[]>;
 //# sourceMappingURL=todays-fixtures-fetcher.d.ts.map
