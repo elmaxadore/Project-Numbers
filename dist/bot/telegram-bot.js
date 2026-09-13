@@ -98,11 +98,11 @@ function findFilesRecursive(dir, extension) {
 }
 async function main() {
     console.log('🤖 Starting Prediction Bot...');
-    // Log API Key Status
+    // Log API Key Status (Free APIs work without paid keys)
     console.log('🔑 API Key Status:');
-    console.log(`   X_RAPIDAPI_KEY: ${process.env.X_RAPIDAPI_KEY ? '✅ Set' : '❌ Missing'}`);
-    console.log(`   THE_ODDS_API: ${process.env.THE_ODDS_API ? '✅ Set' : '❌ Missing'}`);
-    console.log(`   API_SPORTS_KEY: ${process.env.API_SPORTS_KEY ? '✅ Set' : '❌ Missing'}`);
+    console.log(`   X_RAPIDAPI_KEY: ${process.env.X_RAPIDAPI_KEY ? '✅ Set (paid)' : 'ℹ️  Missing (using free TheSportsDB)'}`);
+    console.log(`   THE_ODDS_API: ${process.env.THE_ODDS_API ? '✅ Set' : 'ℹ️  Missing'}`);
+    console.log(`   API_SPORTS_KEY: ${process.env.API_SPORTS_KEY ? '✅ Set (paid)' : 'ℹ️  Missing (using free TheSportsDB)'}`);
     try {
         // 1. Verify Assets exist (downloaded by GitHub Action step)
         const releaseAssetsDir = path.join(process.cwd(), 'release-assets');
