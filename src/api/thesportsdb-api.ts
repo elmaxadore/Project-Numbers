@@ -35,17 +35,37 @@ export async function getFixturesByDate(dateStr: string): Promise<Fixture[]> {
 
     console.log(`✅ [TheSportsDB] Found ${allEvents.length} soccer matches for ${dateStr}`);
 
-    return allEvents.map((event: any): Fixture => ({
+    // CRITICAL: Filter out events with unknown/null league or team names
+    const validEvents = allEvents.filter((event: any) => {
+      const hasValidLeague = event.strLeague && event.strLeague.trim() !== '';
+      const hasValidHomeTeam = event.strHomeTeam && event.strHomeTeam.trim() !== '';
+      const hasValidAwayTeam = event.strAwayTeam && event.strAwayTeam.trim() !== '';
+      
+      if (!hasValidLeague || !hasValidHomeTeam || !hasValidAwayTeam) {
+        console.log(`⚠️ [TheSportsDB] Discarding event with invalid  ${event.strHomeTeam || 'Unknown'} vs ${event.strAwayTeam || 'Unknown'} (League: ${event.strLeague || 'Unknown'})`);
+        return false;
+      }
+      return true;
+    });
+
+    if (validEvents.length === 0) {
+      console.log(`⚠️ [TheSportsDB] All ${allEvents.length} events were discarded due to invalid data`);
+      return [] as Fixture[];
+    }
+
+    console.log(`✅ [TheSportsDB] ${validEvents.length} valid events after filtering`);
+
+    return validEvents.map((event: any): Fixture => ({
       id: Number(event.idEvent),
       leagueId: Number(event.idLeague),
-      leagueName: event.strLeague || 'Unknown League',
+      leagueName: event.strLeague,
       homeTeam: {
         id: Number(event.idHomeTeam),
-        name: event.strHomeTeam || 'Unknown Home'
+        name: event.strHomeTeam
       } as Team,
       awayTeam: {
         id: Number(event.idAwayTeam),
-        name: event.strAwayTeam || 'Unknown Away'
+        name: event.strAwayTeam
       } as Team,
       date: event.dateEvent + 'T' + (event.strTime || '15:00:00') + '+00:00',
       status: 'scheduled'

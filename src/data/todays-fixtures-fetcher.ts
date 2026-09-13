@@ -79,26 +79,46 @@ export async function fetchTodaysFixtures(): Promise<TodaysFixture[]> {
     }
 
     if (apiFixtures && apiFixtures.length > 0) {
-      // Filter only scheduled/upcoming fixtures
+      // Filter only scheduled/upcoming fixtures AND validate all required fields
       const fixtures: TodaysFixture[] = apiFixtures
         .filter(fixture => {
-          const status = fixture.fixture?.status?.short || 'NS';
+          // TheSportsDB uses strStatus, API-Sports uses fixture.status.short
+          const status = fixture.fixture?.status?.short || fixture.strStatus || 'NS';
+          // Handle both API formats: API-Sports uses nested objects, TheSportsDB uses flat properties
+          const leagueName = fixture.league?.name || fixture.leagueName || fixture.strLeague;
+          const homeTeam = fixture.teams?.home?.name || fixture.homeTeam?.name || fixture.strHomeTeam;
+          const awayTeam = fixture.teams?.away?.name || fixture.awayTeam?.name || fixture.strAwayTeam;
+          
+          // CRITICAL: Discard fixtures with unknown/null league or team names
+          if (!leagueName || leagueName.trim() === '' || leagueName === 'Unknown League') {
+            logger.warn(`⚠️ Discarding fixture: Invalid league name "${leagueName}"`);
+            return false;
+          }
+          if (!homeTeam || homeTeam.trim() === '' || homeTeam === 'Unknown Home') {
+            logger.warn(`⚠️ Discarding fixture: Invalid home team "${homeTeam}"`);
+            return false;
+          }
+          if (!awayTeam || awayTeam.trim() === '' || awayTeam === 'Unknown Away') {
+            logger.warn(`⚠️ Discarding fixture: Invalid away team "${awayTeam}"`);
+            return false;
+          }
+          
           return ['NS', '1H', '2H', 'HT'].includes(status);
         })
         .map(fixture => ({
           id: fixture.fixture?.id || fixture.id || 0,
-          leagueId: fixture.league?.id || fixture.idLeague || 0,
-          leagueName: fixture.league?.name || fixture.strLeague || 'Unknown League',
+          leagueId: fixture.league?.id || fixture.idLeague || fixture.leagueId || 0,
+          leagueName: (fixture.league?.name || fixture.leagueName || fixture.strLeague)!,
           homeTeam: {
-            id: fixture.teams?.home?.id || fixture.idHomeTeam || 0,
-            name: fixture.teams?.home?.name || fixture.strHomeTeam || 'Unknown Home',
+            id: fixture.teams?.home?.id || fixture.homeTeam?.id || fixture.idHomeTeam || 0,
+            name: (fixture.teams?.home?.name || fixture.homeTeam?.name || fixture.strHomeTeam)!,
           },
           awayTeam: {
-            id: fixture.teams?.away?.id || fixture.idAwayTeam || 0,
-            name: fixture.teams?.away?.name || fixture.strAwayTeam || 'Unknown Away',
+            id: fixture.teams?.away?.id || fixture.awayTeam?.id || fixture.idAwayTeam || 0,
+            name: (fixture.teams?.away?.name || fixture.awayTeam?.name || fixture.strAwayTeam)!,
           },
-          date: fixture.fixture?.date || (fixture.dateEvent ? `${fixture.dateEvent}T${fixture.strTime || '15:00:00'}+00:00` : ''),
-          timestamp: fixture.fixture?.timestamp || Date.parse(fixture.dateEvent) / 1000 || 0,
+          date: fixture.fixture?.date || (fixture.dateEvent ? `${fixture.dateEvent}T${fixture.strTime || '15:00:00'}+00:00` : fixture.date || ''),
+          timestamp: fixture.fixture?.timestamp || Date.parse(fixture.dateEvent) / 1000 || fixture.timestamp || 0,
           status: 'scheduled' as 'scheduled' | 'live',
         }));
 

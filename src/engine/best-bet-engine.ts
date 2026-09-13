@@ -39,6 +39,20 @@ interface QualifiedBet {
 async function processFixture(fixture: TodaysFixture): Promise<QualifiedBet[]> {
   const qualifiedBets: QualifiedBet[] = [];
   
+  // CRITICAL: Reject fixtures with invalid or unknown league/team names
+  if (!fixture.leagueName || fixture.leagueName.trim() === '' || fixture.leagueName.includes('Unknown')) {
+    logger.warn(`⚠️ Skipping fixture ${fixture.id}: Invalid league name "${fixture.leagueName}"`);
+    return [];
+  }
+  if (!fixture.homeTeam.name || fixture.homeTeam.name.trim() === '' || fixture.homeTeam.name.includes('Unknown')) {
+    logger.warn(`⚠️ Skipping fixture ${fixture.id}: Invalid home team "${fixture.homeTeam.name}"`);
+    return [];
+  }
+  if (!fixture.awayTeam.name || fixture.awayTeam.name.trim() === '' || fixture.awayTeam.name.includes('Unknown')) {
+    logger.warn(`⚠️ Skipping fixture ${fixture.id}: Invalid away team "${fixture.awayTeam.name}"`);
+    return [];
+  }
+  
   try {
     // Create fixture data package with estimated stats (since we can't access API-Sports)
     const fixturePackage: FixtureDataPackage = {
