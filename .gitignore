@@ -1,4 +1,7 @@
 ```
+# Dependencies
+node_modules/
+
 # Build artifacts
 dist/
 *.js
@@ -6,22 +9,29 @@ dist/
 *.d.ts
 *.d.ts.map
 
-# Dependencies
-node_modules/
+# Cache and temporary data
+data-cache/
+src/data/csv-cache/
+test-output.txt
+test-save.txt
+analysis-output.txt
 
-# Environment
+# Environment and local config
 .env
 .env.local
-.env.*
-
-# Editors
-.vscode/
-.idea/
+*.env.*
 
 # Logs
 *.log
 
-# Temporary files
-*.tmp
+# Editor/IDE
+.vscode/
+.idea/
 *.swp
+*.swo
+*.tmp
+
+# OS
+.DS_Store
+Thumbs.db
 ```

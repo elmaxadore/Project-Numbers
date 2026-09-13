@@ -7,10 +7,11 @@
  * - Ranks bets by probability and expected value
  * - Sends comprehensive reports to Telegram
  * - Works 100% free with TheSportsDB API
+ * - Loads configuration from .env file using dotenv
  *
  * Output Structure:
  * 1. ALL MATCHES FOUND - Every valid match with most probable outcome
  * 2. RANKED BEST BETS - Only qualified bets (EV > 0), sorted by probability
  */
-export {};
+import 'dotenv/config';
 //# sourceMappingURL=telegram-bot.d.ts.map

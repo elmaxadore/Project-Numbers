@@ -1,0 +1,22 @@
+🤖 Starting Comprehensive Betting Analysis Bot...
+================================================================================
+🔑 API Key Status:
+   X_RAPIDAPI_KEY: ℹ️ Missing (using free TheSportsDB)
+   THE_ODDS_API: ℹ️ Missing
+   API_SPORTS_KEY: ℹ️ Missing (using free TheSportsDB)
+
+📂 Checking release-assets directory...
+✅ Model found: o25-ensemble.bin (1 available)
+✅ Data found: all-sports-data.json (1 available)
+
+📅 Fetching fixtures for upcoming matches...
+--------------------------------------------------------------------------------
+✅ Found 1 real matches
+
+📋 Sample Fixtures:
+   1. Chicago Fire vs New England Revolution (American Major League Soccer)
+
+🧠 Running prediction engine on all fixtures...
+--------------------------------------------------------------------------------
+
+📤 Preparing Telegram messages...

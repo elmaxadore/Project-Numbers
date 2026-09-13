@@ -7,22 +7,38 @@
  * - Ranks bets by probability and expected value
  * - Sends comprehensive reports to Telegram
  * - Works 100% free with TheSportsDB API
+ * - Loads configuration from .env file using dotenv
  *
  * Output Structure:
  * 1. ALL MATCHES FOUND - Every valid match with most probable outcome
  * 2. RANKED BEST BETS - Only qualified bets (EV > 0), sorted by probability
  */
+import 'dotenv/config'; // Load environment variables from .env file
 import fetch from 'node-fetch';
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-// Configuration from Environment Variables
+// Helper function to parse boolean strings gracefully
+function parseBoolean(value, defaultValue = false) {
+    if (value === undefined || value === '') {
+        return defaultValue;
+    }
+    const lower = value.toLowerCase().trim();
+    if (lower === 'true' || lower === '1' || lower === 'yes') {
+        return true;
+    }
+    if (lower === 'false' || lower === '0' || lower === 'no') {
+        return false;
+    }
+    return defaultValue;
+}
+// Configuration from Environment Variables (loaded via dotenv)
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
-const SEND_TELEGRAM = process.env.SEND_TELEGRAM !== 'false';
-const DEBUG_MODE = process.env.DEBUG_MODE === 'true';
+const SEND_TELEGRAM = parseBoolean(process.env.TELEGRAM_SENDING_ENABLED, true);
+const DEBUG_MODE = parseBoolean(process.env.DEBUG_MODE, false);
 class ComprehensiveAnalysisBot {
     telegramUrl;
     analysisOutput = [];
@@ -216,21 +232,21 @@ function findFilesRecursive(dir, extension) {
     return results;
 }
 async function main() {
-    console.log('🤖 Starting Comprehensive Betting Analysis Bot...');
-    console.log('='.repeat(80));
     const bot = new ComprehensiveAnalysisBot();
+    bot.log('🤖 Starting Comprehensive Betting Analysis Bot...');
+    bot.log('='.repeat(80));
     // Log API Key Status
-    console.log('🔑 API Key Status:');
-    console.log(`   X_RAPIDAPI_KEY: ${process.env.X_RAPIDAPI_KEY ? '✅ Set (paid)' : 'ℹ️ Missing (using free TheSportsDB)'}`);
-    console.log(`   THE_ODDS_API: ${process.env.THE_ODDS_API ? '✅ Set' : 'ℹ️ Missing'}`);
-    console.log(`   API_SPORTS_KEY: ${process.env.API_SPORTS_KEY ? '✅ Set (paid)' : 'ℹ️ Missing (using free TheSportsDB)'}`);
-    console.log('');
+    bot.log('🔑 API Key Status:');
+    bot.log(`   X_RAPIDAPI_KEY: ${process.env.X_RAPIDAPI_KEY ? '✅ Set (paid)' : 'ℹ️ Missing (using free TheSportsDB)'}`);
+    bot.log(`   THE_ODDS_API: ${process.env.THE_ODDS_API ? '✅ Set' : 'ℹ️ Missing'}`);
+    bot.log(`   API_SPORTS_KEY: ${process.env.API_SPORTS_KEY ? '✅ Set (paid)' : 'ℹ️ Missing (using free TheSportsDB)'}`);
+    bot.log('');
     try {
         // 1. Verify Assets Directory
         const releaseAssetsDir = path.join(process.cwd(), 'release-assets');
-        console.log('📂 Checking release-assets directory...');
+        bot.log('📂 Checking release-assets directory...');
         if (!fs.existsSync(releaseAssetsDir)) {
-            console.log('⚠️ release-assets directory not found. Creating it...');
+            bot.log('⚠️ release-assets directory not found. Creating it...');
             fs.mkdirSync(releaseAssetsDir, { recursive: true });
             // Create placeholder files
             fs.writeFileSync(path.join(releaseAssetsDir, 'all-sports-data.json'), '{}');
@@ -240,10 +256,10 @@ async function main() {
         const modelFiles = findFilesRecursive(releaseAssetsDir, '.bin');
         if (modelFiles.length > 0) {
             const modelPath = modelFiles.find(f => f.includes('o25')) || modelFiles[0];
-            console.log(`✅ Model found: ${path.basename(modelPath)} (${modelFiles.length} available)`);
+            bot.log(`✅ Model found: ${path.basename(modelPath)} (${modelFiles.length} available)`);
         }
         else {
-            console.log('ℹ️ No .bin model files found. Will use default weights.');
+            bot.log('ℹ️ No .bin model files found. Will use default weights.');
         }
         // Find data files
         const dataFiles = findFilesRecursive(releaseAssetsDir, '.json');
@@ -251,15 +267,15 @@ async function main() {
             const dataPath = dataFiles.find(f => f.includes('all-sports-data.json')) ||
                 dataFiles.find(f => f.includes('football')) ||
                 dataFiles[0];
-            console.log(`✅ Data found: ${path.basename(dataPath)} (${dataFiles.length} available)`);
+            bot.log(`✅ Data found: ${path.basename(dataPath)} (${dataFiles.length} available)`);
         }
         else {
-            console.log('ℹ️ No .json data files found. Will use API data only.');
+            bot.log('ℹ️ No .json data files found. Will use API data only.');
         }
         // 2. Fetch REAL Fixtures
-        console.log('');
-        console.log('📅 Fetching fixtures for upcoming matches...');
-        console.log('-'.repeat(80));
+        bot.log('');
+        bot.log('📅 Fetching fixtures for upcoming matches...');
+        bot.log('-'.repeat(80));
         const { fetchTodaysFixtures } = await import('../data/todays-fixtures-fetcher.js');
         const fixtures = await fetchTodaysFixtures();
         const todayStr = new Date().toISOString().split('T')[0];
@@ -268,25 +284,25 @@ async function main() {
                 `This is normal during off-season periods or if no matches are scheduled. ` +
                 `The bot searched up to 7 days ahead. Check back tomorrow!`);
         }
-        console.log(`✅ Found ${fixtures.length} real matches`);
-        console.log('');
+        bot.log(`✅ Found ${fixtures.length} real matches`);
+        bot.log('');
         // Log first few fixtures
-        console.log('📋 Sample Fixtures:');
+        bot.log('📋 Sample Fixtures:');
         fixtures.slice(0, 5).forEach((f, i) => {
-            console.log(`   ${i + 1}. ${f.homeTeam.name} vs ${f.awayTeam.name} (${f.leagueName})`);
+            bot.log(`   ${i + 1}. ${f.homeTeam.name} vs ${f.awayTeam.name} (${f.leagueName})`);
         });
         if (fixtures.length > 5) {
-            console.log(`   ... and ${fixtures.length - 5} more matches`);
+            bot.log(`   ... and ${fixtures.length - 5} more matches`);
         }
-        console.log('');
+        bot.log('');
         // 3. Run Best Bet Engine
-        console.log('🧠 Running prediction engine on all fixtures...');
-        console.log('-'.repeat(80));
+        bot.log('🧠 Running prediction engine on all fixtures...');
+        bot.log('-'.repeat(80));
         const { findBestBet } = await import('../engine/best-bet-engine.js');
         const bestBet = await findBestBet(fixtures);
         // 4. Send Reports to Telegram
-        console.log('');
-        console.log('📤 Preparing Telegram messages...');
+        bot.log('');
+        bot.log('📤 Preparing Telegram messages...');
         // For now, send the simple prediction
         const simpleMessage = bot.formatPrediction(bestBet);
         if (SEND_TELEGRAM && bot['telegramUrl']) {
