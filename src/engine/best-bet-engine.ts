@@ -162,7 +162,7 @@ async function processFixture(fixture: TodaysFixture): Promise<QualifiedBet[]> {
  * Find the best bet from today's fixtures
  * Returns the single highest EV bet that meets confidence thresholds
  */
-export async function findBestBet(fixtures: TodaysFixture[]): Promise<PredictionResult> {
+export async function findBestBet(fixtures: TodaysFixture[]): Promise<PredictionResult | null> {
   logger.info('🧠 Running prediction engine on real fixtures...');
   
   if (!fixtures || fixtures.length === 0) {
@@ -192,6 +192,15 @@ export async function findBestBet(fixtures: TodaysFixture[]): Promise<Prediction
   const bestBet = allQualifiedBets[0];
   
   logger.info(`✅ Found ${allQualifiedBets.length} qualified bets. Best probability: ${(bestBet.modelProbability * 100).toFixed(1)}%`);
+  
+  // Log ALL qualified bets for debugging
+  console.log('\n📊 ALL QUALIFIED BETS FOUND:');
+  allQualifiedBets.forEach((bet, index) => {
+    console.log(`  ${index + 1}. ${bet.match} (${bet.league})`);
+    console.log(`     Market: ${bet.market} | Prediction: ${bet.prediction}`);
+    console.log(`     Probability: ${(bet.modelProbability * 100).toFixed(1)}% | EV: ${bet.ev}%`);
+  });
+  console.log('');
   
   return {
     match: bestBet.match,

@@ -17,5 +17,5 @@ export interface PredictionResult {
  * Find the best bet from today's fixtures
  * Returns the single highest EV bet that meets confidence thresholds
  */
-export declare function findBestBet(fixtures: TodaysFixture[]): Promise<PredictionResult>;
+export declare function findBestBet(fixtures: TodaysFixture[]): Promise<PredictionResult | null>;
 //# sourceMappingURL=best-bet-engine.d.ts.map

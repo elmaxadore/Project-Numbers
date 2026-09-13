@@ -3,13 +3,15 @@ const BASE_URL = 'https://www.thesportsdb.com/api/v1/json';
 /**
  * Fetches fixtures for a specific date from TheSportsDB
  * Uses eventsnextleague endpoint for top leagues (more reliable than lookallnext)
+ * Also tries lookallnext.php as fallback to catch ALL sports/leagues
  */
 export async function getFixturesByDate(dateStr) {
     console.log(`📡 [TheSportsDB] Fetching fixtures for ${dateStr}...`);
     try {
         // Fetch upcoming fixtures from major leagues
-        const leagueIds = [4328, 4335, 4331, 4332, 4334, 4344]; // EPL, La Liga, Serie A, Bundesliga, Ligue 1, Eredivisie
+        const leagueIds = [4328, 4335, 4331, 4332, 4334, 4344, 4351, 4346, 4356, 4370]; // EPL, La Liga, Serie A, Bundesliga, Ligue 1, Eredivisie, Championship, Primeira Liga, MLS, Brasileirao
         const allEvents = [];
+        // Method 1: Fetch from specific major leagues
         for (const leagueId of leagueIds) {
             const url = `${BASE_URL}/${API_KEY}/eventsnextleague.php?id=${leagueId}`;
             const response = await fetch(url);
@@ -21,6 +23,29 @@ export async function getFixturesByDate(dateStr) {
                     allEvents.push(...leagueEvents);
                 }
             }
+        }
+        // Method 2: Fallback - Fetch ALL upcoming events across all sports/leagues
+        try {
+            const allNextUrl = `${BASE_URL}/${API_KEY}/lookallnext.php`;
+            const allNextResponse = await fetch(allNextUrl);
+            if (allNextResponse.ok) {
+                const allNextData = await allNextResponse.json();
+                if (allNextData.events && Array.isArray(allNextData.events)) {
+                    // Filter for soccer/football events on the target date
+                    const soccerEvents = allNextData.events.filter((e) => e.dateEvent === dateStr &&
+                        e.strSport === 'Soccer');
+                    // Add events that aren't already in our list (avoid duplicates)
+                    const existingIds = new Set(allEvents.map(e => e.idEvent));
+                    for (const event of soccerEvents) {
+                        if (!existingIds.has(event.idEvent)) {
+                            allEvents.push(event);
+                        }
+                    }
+                }
+            }
+        }
+        catch (err) {
+            console.log(`⚠️ [TheSportsDB] lookallnext.php failed: ${err.message}`);
         }
         if (allEvents.length === 0) {
             return []; // No fixtures found

@@ -1,3 +1,81 @@
-(full-analysis.js is just a JavaScript source file, which should not be ignored according to rule 7 - source code files should not be ignored unless they are clearly generated or sensitive. Since only a source file was added and no build artifacts, dependencies, or temp files are present in the changes, the gitignore should remain empty.)
+```
+# Build artifacts
+dist/
+release-assets/
 
-(full-analysis.js is just a JavaScript source file, which should not be ignored according to rule 7 - source code files should not be ignored unless they are clearly generated or sensitive. Since only a source file was added and no build artifacts, dependencies, or temp files are present in the changes, the gitignore should remain empty.)
+# Compiled files
+*.d.ts
+*.d.ts.map
+*.js
+*.js.map
+*.bin
+
+# Dependencies
+node_modules/
+
+# Environment
+.env
+.env.local
+*.env.*
+
+# Editors
+.vscode/
+.idea/
+
+# Logs and temp files
+*.log
+*.tmp
+*.swp
+
+# Coverage
+coverage/
+htmlcov/
+.coverage
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.coverage*
+.nox/
+.pytest_cache/
+.mypy_cache/
+
+# Java
+*.class
+*.jar
+*.war
+*.ear
+*.tar.gz
+target/
+.gradle/
+build/
+
+# Node.js
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+node_modules/
+jspm_packages/
+
+# C/C++
+*.o
+*.obj
+*.exe
+*.dll
+*.so
+*.a
+*.out
+
+# OS
+.DS_Store
+Thumbs.db
+```

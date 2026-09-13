@@ -2,6 +2,7 @@ import { Fixture } from '../models/types.js';
 /**
  * Fetches fixtures for a specific date from TheSportsDB
  * Uses eventsnextleague endpoint for top leagues (more reliable than lookallnext)
+ * Also tries lookallnext.php as fallback to catch ALL sports/leagues
  */
 export declare function getFixturesByDate(dateStr: string): Promise<Fixture[]>;
 /**
