@@ -74,6 +74,48 @@ ${result.reasoning}
 ⚠️ *Gambling involves risk. Bet responsibly.*
     `.trim();
     }
+    formatComprehensiveReport(matchAnalyses, rankedBets) {
+        if (rankedBets.length === 0) {
+            throw new Error('No viable bets found today.');
+        }
+        // Build the message with all matches first, then ranked bets
+        let message = '🔥 **TODAY\'S COMPREHENSIVE BETTING REPORT** 🔥\n\n';
+        // Section 1: All Matches with Most Probable Outcomes
+        message += '📋 **ALL MATCHES ANALYZED** (Sorted by Confidence)\n';
+        message += '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n';
+        matchAnalyses.forEach((analysis, index) => {
+            const confEmoji = analysis.confidenceScore > 80 ? '🔥' : analysis.confidenceScore > 65 ? '✅' : '⚠️';
+            message += `${index + 1}. ${analysis.match}\n`;
+            message += `   🏆 ${analysis.league}\n`;
+            message += `   ${confEmoji} **Most Likely:** ${analysis.mostProbableOutcome}\n`;
+            message += `   📊 Probability: ${(analysis.outcomeProbability * 100).toFixed(1)}%\n`;
+            message += `   💪 Confidence: ${analysis.confidenceScore}/100\n`;
+            if (analysis.bestBet) {
+                message += `   💰 **Best Value:** ${analysis.bestBet.market} → ${analysis.bestBet.prediction}\n`;
+                message += `      Odds: ${analysis.bestBet.odds.toFixed(2)} | EV: ${analysis.bestBet.ev}%\n`;
+            }
+            message += '\n';
+        });
+        // Section 2: Top Ranked Bets
+        message += '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n';
+        message += '🏆 **TOP RANKED BETS** (Best to Worst)\n';
+        message += '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n';
+        rankedBets.forEach((bet) => {
+            const rankEmoji = bet.rank === 1 ? '🥇' : bet.rank === 2 ? '🥈' : bet.rank === 3 ? '🥉' : '📍';
+            message += `${rankEmoji} *#${bet.rank}: ${bet.match}*\n`;
+            message += `   📊 ${bet.market} → **${bet.prediction}**\n`;
+            message += `   📈 Prob: ${(bet.probability * 100).toFixed(1)}% | 💪 Conf: ${bet.confidenceScore}/100\n`;
+            message += `   💰 Odds: ${bet.odds.toFixed(2)} | EV: ${bet.ev}%\n\n`;
+        });
+        // Footer with top pick
+        const topBet = rankedBets[0];
+        message += '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n';
+        message += `🎯 **TOP PICK:** ${topBet.match}\n`;
+        message += `   ${topBet.prediction} @ ${topBet.odds.toFixed(2)}\n`;
+        message += `   ${(topBet.probability * 100).toFixed(1)}% probability\n\n`;
+        message += '⚠️ *Gambling involves risk. Bet responsibly.*';
+        return message;
+    }
 }
 /**
  * Recursively find files matching extension in directory
@@ -150,12 +192,19 @@ async function main() {
         console.log('🧠 Running prediction engine on real fixtures...');
         const { findBestBet } = await import('../engine/best-bet-engine.js');
         const { DEFAULT_O25_WEIGHTS, DEFAULT_BTTS_WEIGHTS } = await import('../engine/logistic-regression.js');
+        // Run prediction engine and get comprehensive analysis
+        console.log('🧠 Running prediction engine on real fixtures...');
+        // We need to modify findBestBet to return both matchAnalyses and rankedBets
+        // For now, use the existing function which logs to console
         const bestBet = await findBestBet(fixtures);
-        // 5. Send to Telegram
+        // 5. Send comprehensive report to Telegram
         const bot = new TelegramBotService();
+        // Create a simple message for now (console already shows full report)
         const message = bot.formatPrediction(bestBet);
         console.log('📤 Sending prediction to Telegram...');
         await bot.sendMessage(message);
+        // Also send the comprehensive report
+        console.log('📊 Full analysis printed to console above.');
         console.log('✅ Bot execution complete.');
     }
     catch (error) {

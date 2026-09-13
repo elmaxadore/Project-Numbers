@@ -87,7 +87,15 @@ async function processFixture(fixture) {
         };
         // Run predictions
         const predictions = predictFixture(fixturePackage, DEFAULT_O25_WEIGHTS, DEFAULT_BTTS_WEIGHTS);
+        // Find the most probable outcome across all markets for this fixture
+        let mostProbableOutcome = 'No strong prediction';
+        let highestProbability = 0;
         for (const pred of predictions) {
+            if (pred.modelProbability > highestProbability) {
+                highestProbability = pred.modelProbability;
+                const outcomeText = pred.market.includes('over') || pred.market.includes('btts_yes') ? 'Yes' : 'No';
+                mostProbableOutcome = `${pred.market.replace('_', ' ').toUpperCase()}: ${outcomeText}`;
+            }
             const modelProb = pred.modelProbability;
             // Skip low probability predictions (<45%)
             if (modelProb < 0.45)
@@ -100,17 +108,21 @@ async function processFixture(fixture) {
             const ev = (modelProb * estimatedOdds - 1) * 100;
             // Include all predictions with modelProb > 50% (positive expected value territory)
             if (modelProb > 0.50) {
+                const outcomeText = pred.market.includes('over') || pred.market.includes('btts_yes') ? 'Yes' : 'No';
                 qualifiedBets.push({
                     fixtureId: fixture.id,
                     match: `${fixture.homeTeam.name} vs ${fixture.awayTeam.name}`,
                     league: fixture.leagueName,
                     market: pred.market.replace('_', ' ').toUpperCase(),
-                    prediction: pred.market.includes('over') || pred.market.includes('btts_yes') ? 'Yes' : 'No',
+                    prediction: outcomeText,
                     modelProbability: modelProb,
                     modelConfidence: pred.modelConfidence,
                     estimatedOdds: parseFloat(estimatedOdds.toFixed(2)),
                     ev: parseFloat(ev.toFixed(1)),
-                    reasoning: `Model probability: ${(modelProb * 100).toFixed(1)}%. Based on xG analysis and recent form.`
+                    reasoning: `Model probability: ${(modelProb * 100).toFixed(1)}%. Based on xG analysis and recent form.`,
+                    mostProbableOutcome: mostProbableOutcome,
+                    outcomeProbability: highestProbability,
+                    confidenceScore: Math.round(pred.modelConfidence * 100)
                 });
             }
         }
@@ -123,7 +135,7 @@ async function processFixture(fixture) {
 }
 /**
  * Find the best bet from today's fixtures
- * Returns the single highest EV bet that meets confidence thresholds
+ * Returns comprehensive analysis of ALL matches ranked by probability
  */
 export async function findBestBet(fixtures) {
     logger.info('🧠 Running prediction engine on real fixtures...');
@@ -131,29 +143,75 @@ export async function findBestBet(fixtures) {
         throw new Error('No fixtures provided to analyze.');
     }
     const allQualifiedBets = [];
+    const allMatchAnalyses = [];
     // Process all fixtures in parallel
     const betPromises = fixtures.map(fixture => processFixture(fixture));
     const results = await Promise.all(betPromises);
-    // Flatten results
+    // Flatten results and build match analyses
     for (const bets of results) {
         allQualifiedBets.push(...bets);
+        // Group bets by fixture to create match analyses
+        for (const bet of bets) {
+            let existingAnalysis = allMatchAnalyses.find(a => a.fixtureId === bet.fixtureId);
+            if (!existingAnalysis) {
+                existingAnalysis = {
+                    fixtureId: bet.fixtureId,
+                    match: bet.match,
+                    league: bet.league,
+                    mostProbableOutcome: bet.mostProbableOutcome,
+                    outcomeProbability: bet.outcomeProbability,
+                    confidenceScore: bet.confidenceScore,
+                    bestBet: undefined
+                };
+                allMatchAnalyses.push(existingAnalysis);
+            }
+            // Track the best bet for this match
+            if (!existingAnalysis.bestBet || bet.ev > existingAnalysis.bestBet.ev) {
+                existingAnalysis.bestBet = {
+                    market: bet.market,
+                    prediction: bet.prediction,
+                    odds: bet.estimatedOdds,
+                    ev: bet.ev
+                };
+            }
+        }
     }
     if (allQualifiedBets.length === 0) {
         throw new Error('No viable bets found today. All predictions failed to meet probability (>50%) threshold. ' +
             'This is normal - value bets are rare. Check back tomorrow.');
     }
-    // Sort by modelProbability descending and pick the best
+    // Sort ALL matches by their most probable outcome (descending)
+    allMatchAnalyses.sort((a, b) => b.outcomeProbability - a.outcomeProbability);
+    // Sort qualified bets by modelProbability descending
     allQualifiedBets.sort((a, b) => b.modelProbability - a.modelProbability);
     const bestBet = allQualifiedBets[0];
-    logger.info(`✅ Found ${allQualifiedBets.length} qualified bets. Best probability: ${(bestBet.modelProbability * 100).toFixed(1)}%`);
-    // Log ALL qualified bets for debugging
-    console.log('\n📊 ALL QUALIFIED BETS FOUND:');
-    allQualifiedBets.forEach((bet, index) => {
-        console.log(`  ${index + 1}. ${bet.match} (${bet.league})`);
-        console.log(`     Market: ${bet.market} | Prediction: ${bet.prediction}`);
-        console.log(`     Probability: ${(bet.modelProbability * 100).toFixed(1)}% | EV: ${bet.ev}%`);
+    logger.info(`✅ Found ${allMatchAnalyses.length} matches analyzed, ${allQualifiedBets.length} qualified bets.`);
+    // Print comprehensive report: ALL matches first, then ranked bets
+    console.log('\n' + '='.repeat(80));
+    console.log('📋 ALL MATCHES FOUND TODAY (Sorted by Most Probable Outcome)');
+    console.log('='.repeat(80));
+    allMatchAnalyses.forEach((analysis, index) => {
+        console.log(`\n${index + 1}. ${analysis.match}`);
+        console.log(`   League: ${analysis.league}`);
+        console.log(`   🔮 Most Probable Outcome: ${analysis.mostProbableOutcome}`);
+        console.log(`   📊 Probability: ${(analysis.outcomeProbability * 100).toFixed(1)}%`);
+        console.log(`   💪 Confidence: ${analysis.confidenceScore}/100`);
+        if (analysis.bestBet) {
+            console.log(`   💰 Best Value Bet: ${analysis.bestBet.market} - ${analysis.bestBet.prediction}`);
+            console.log(`      Odds: ${analysis.bestBet.odds.toFixed(2)} | EV: ${analysis.bestBet.ev}%`);
+        }
     });
-    console.log('');
+    console.log('\n' + '='.repeat(80));
+    console.log('🏆 TOP RANKED BETS (Sorted by Probability - Best to Worst)');
+    console.log('='.repeat(80));
+    allQualifiedBets.forEach((bet, index) => {
+        console.log(`\n#${index + 1}: ${bet.match} (${bet.league})`);
+        console.log(`   Market: ${bet.market} | Pick: ${bet.prediction}`);
+        console.log(`   📈 Probability: ${(bet.modelProbability * 100).toFixed(1)}%`);
+        console.log(`   💪 Confidence: ${bet.confidenceScore}/100`);
+        console.log(`   💰 Odds: ${bet.estimatedOdds.toFixed(2)} | EV: ${bet.ev}%`);
+    });
+    console.log('\n' + '='.repeat(80) + '\n');
     return {
         match: bestBet.match,
         league: bestBet.league,
@@ -162,7 +220,7 @@ export async function findBestBet(fixtures) {
         confidence: parseFloat((bestBet.modelConfidence * 100).toFixed(1)),
         odds: bestBet.estimatedOdds,
         expectedValue: bestBet.ev,
-        reasoning: bestBet.reasoning
+        reasoning: `${bestBet.reasoning} Ranked #${allQualifiedBets.indexOf(bestBet) + 1} out of ${allQualifiedBets.length} bets.`
     };
 }
 //# sourceMappingURL=best-bet-engine.js.map

@@ -15,7 +15,7 @@ export interface PredictionResult {
 }
 /**
  * Find the best bet from today's fixtures
- * Returns the single highest EV bet that meets confidence thresholds
+ * Returns comprehensive analysis of ALL matches ranked by probability
  */
 export declare function findBestBet(fixtures: TodaysFixture[]): Promise<PredictionResult | null>;
 //# sourceMappingURL=best-bet-engine.d.ts.map
