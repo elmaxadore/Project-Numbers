@@ -1,98 +1,100 @@
 /**
  * Today's Fixtures Fetcher
- * Fetches real upcoming matches for today using API-Sports (RapidAPI)
+ * Fetches real upcoming matches using API-Sports (RapidAPI) or TheSportsDB (free fallback)
  */
-import { getFixturesByDate } from '../api/api-sports.js';
-import { CONFIG } from '../config.js';
+import { getFixturesByDate as getApiSportsFixtures } from '../api/api-sports.js';
+import { getFixturesByDate as getTheSportsDBFixtures } from '../api/thesportsdb-api.js';
 import { logger } from '../utils/logger.js';
 /**
- * Fetch all fixtures scheduled for today
- * Throws error if API key is missing or API call fails
- * Returns empty array only if API succeeds but no fixtures exist for today
+ * Fetch all fixtures scheduled for today. If none found, searches next 7 days.
+ * Tries API-Sports first (if key available), then falls back to TheSportsDB (free)
+ * Throws error only if both sources fail
  */
 export async function fetchTodaysFixtures() {
     logger.info('📅 Fetching real fixtures for today...');
-    // Check if API key is configured
-    if (!CONFIG.apiSportsKey) {
-        throw new Error('API_SPORTS_KEY or X_RAPIDAPI_KEY not configured. Please set the environment variable in GitHub Secrets.');
+    const apiSportsKey = process.env.X_RAPIDAPI_KEY || process.env.API_SPORTS_KEY;
+    let hasValidApiSportsKey = apiSportsKey && apiSportsKey.length > 10;
+    if (hasValidApiSportsKey) {
+        logger.info('🔑 Using API-Sports (RapidAPI)...');
     }
-    const today = new Date().toISOString().split('T')[0];
-    logger.info(`Fetching fixtures for date: ${today}`);
-    // Fetch fixtures for today across all leagues - this will THROW on API errors
-    // (no try/catch here - let errors propagate to main() for Telegram notification)
-    const apiFixtures = await getFixturesByDate(today, today);
-    if (!apiFixtures || apiFixtures.length === 0) {
-        logger.warn(`⚠️ No fixtures found for today (${today}). This could mean it's an off-season day or no matches are scheduled.`);
-        return [];
+    else {
+        logger.info('ℹ️ No valid API-Sports key found. Using TheSportsDB (free)...');
     }
-    // Filter only scheduled/upcoming fixtures
-    const todaysFixtures = apiFixtures
-        .filter(fixture => {
-        const status = fixture.fixture.status.short;
-        // NS = Not Started, 1H = First Half, 2H = Second Half (include live too)
-        return ['NS', '1H', '2H', 'HT'].includes(status);
-    })
-        .map(fixture => ({
-        id: fixture.fixture.id,
-        leagueId: fixture.league.id,
-        leagueName: fixture.league.name,
-        homeTeam: {
-            id: fixture.teams.home.id,
-            name: fixture.teams.home.name,
-        },
-        awayTeam: {
-            id: fixture.teams.away.id,
-            name: fixture.teams.away.name,
-        },
-        date: fixture.fixture.date,
-        timestamp: fixture.fixture.timestamp,
-        status: fixture.fixture.status.short === 'NS' ? 'scheduled' : 'live',
-    }));
-    logger.info(`✅ Found ${todaysFixtures.length} real matches for today`);
-    // Log first few fixtures for debugging
-    todaysFixtures.slice(0, 3).forEach(f => {
-        logger.debug(`  - ${f.homeTeam.name} vs ${f.awayTeam.name} (${f.leagueName})`);
-    });
-    return todaysFixtures;
-}
-/**
- * Fetch fixtures for a specific league
- */
-export async function fetchFixturesForLeague(leagueId, date) {
-    logger.info(`📅 Fetching fixtures for league ${leagueId}...`);
-    if (!CONFIG.apiSportsKey) {
-        logger.warn('⚠️ API_SPORTS_KEY not configured.');
-        return [];
-    }
-    try {
-        const today = date || new Date().toISOString().split('T')[0];
-        const apiFixtures = await getFixturesByDate(today, today, leagueId);
-        if (!apiFixtures || apiFixtures.length === 0) {
-            logger.info(`No fixtures found for league ${leagueId} on ${today}`);
-            return [];
+    const today = new Date();
+    const maxDaysToSearch = 7;
+    logger.info(`Searching for fixtures starting from ${today.toISOString().split('T')[0]}...`);
+    for (let dayOffset = 0; dayOffset < maxDaysToSearch; dayOffset++) {
+        const searchDate = new Date(today);
+        searchDate.setDate(today.getDate() + dayOffset);
+        const dateStr = searchDate.toISOString().split('T')[0];
+        logger.info(`Checking date: ${dateStr} (day +${dayOffset})...`);
+        let apiFixtures = [];
+        let source = '';
+        // Try API-Sports first if key is available
+        if (hasValidApiSportsKey) {
+            try {
+                apiFixtures = await getApiSportsFixtures(dateStr, dateStr);
+                source = 'API-Sports';
+            }
+            catch (error) {
+                logger.warn(`⚠️ API-Sports failed: ${error.message}. Trying TheSportsDB...`);
+                hasValidApiSportsKey = false; // Don't retry API-Sports
+            }
         }
-        return apiFixtures
-            .filter(fixture => ['NS', '1H', '2H', 'HT'].includes(fixture.fixture.status.short))
-            .map(fixture => ({
-            id: fixture.fixture.id,
-            leagueId: fixture.league.id,
-            leagueName: fixture.league.name,
-            homeTeam: {
-                id: fixture.teams.home.id,
-                name: fixture.teams.home.name,
-            },
-            awayTeam: {
-                id: fixture.teams.away.id,
-                name: fixture.teams.away.name,
-            },
-            date: fixture.fixture.date,
-            timestamp: fixture.fixture.timestamp,
-            status: fixture.fixture.status.short === 'NS' ? 'scheduled' : 'live',
-        }));
+        // Fallback to TheSportsDB if API-Sports failed or no key
+        if (!hasValidApiSportsKey || (source === 'API-Sports' && apiFixtures.length === 0)) {
+            try {
+                apiFixtures = await getTheSportsDBFixtures(dateStr);
+                source = 'TheSportsDB';
+            }
+            catch (error) {
+                logger.warn(`⚠️ TheSportsDB also failed: ${error.message}`);
+                apiFixtures = [];
+            }
+        }
+        if (apiFixtures && apiFixtures.length > 0) {
+            // Filter only scheduled/upcoming fixtures
+            const fixtures = apiFixtures
+                .filter(fixture => {
+                const status = fixture.fixture?.status?.short || 'NS';
+                return ['NS', '1H', '2H', 'HT'].includes(status);
+            })
+                .map(fixture => ({
+                id: fixture.fixture?.id || fixture.id || 0,
+                leagueId: fixture.league?.id || fixture.idLeague || 0,
+                leagueName: fixture.league?.name || fixture.strLeague || 'Unknown League',
+                homeTeam: {
+                    id: fixture.teams?.home?.id || fixture.idHomeTeam || 0,
+                    name: fixture.teams?.home?.name || fixture.strHomeTeam || 'Unknown Home',
+                },
+                awayTeam: {
+                    id: fixture.teams?.away?.id || fixture.idAwayTeam || 0,
+                    name: fixture.teams?.away?.name || fixture.strAwayTeam || 'Unknown Away',
+                },
+                date: fixture.fixture?.date || (fixture.dateEvent ? `${fixture.dateEvent}T${fixture.strTime || '15:00:00'}+00:00` : ''),
+                timestamp: fixture.fixture?.timestamp || Date.parse(fixture.dateEvent) / 1000 || 0,
+                status: 'scheduled',
+            }));
+            if (fixtures.length > 0) {
+                if (dayOffset === 0) {
+                    logger.info(`✅ Found ${fixtures.length} fixtures for today (${dateStr}) via ${source}`);
+                }
+                else {
+                    logger.info(`✅ Found ${fixtures.length} fixtures for ${dateStr} (${dayOffset} day${dayOffset > 1 ? 's' : ''} ahead) via ${source}`);
+                }
+                // Log first few fixtures for debugging
+                fixtures.slice(0, 3).forEach(f => {
+                    logger.debug(`  - ${f.homeTeam.name} vs ${f.awayTeam.name} (${f.leagueName})`);
+                });
+                return fixtures;
+            }
+        }
+        logger.info(`No fixtures found for ${dateStr}, checking next day...`);
     }
-    catch (error) {
-        logger.error(`Failed to fetch fixtures for league ${leagueId}: ${error.message}`);
-        return [];
-    }
+    // Only reach here if ALL 7 days had no fixtures from both sources
+    throw new Error(`No fixtures found in the next ${maxDaysToSearch} days from any source. ` +
+        `This likely means: 1) It's a major off-season period (e.g., July for European football), ` +
+        `2) Both API services are experiencing downtime, or 3) Network issues. ` +
+        `Check back tomorrow or verify your internet connection.`);
 }
 //# sourceMappingURL=todays-fixtures-fetcher.js.map
