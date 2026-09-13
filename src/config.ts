@@ -52,7 +52,7 @@ export const CONFIG: SystemConfig = {
 export function validateConfig(): { valid: boolean; missing: string[] } {
   const missing: string[] = [];
 
-  if (!CONFIG.apiSportsKey) missing.push('API_SPORTS_KEY');
+  if (!CONFIG.apiSportsKey) missing.push('API_SPORTS_KEY or X_RAPIDAPI_KEY');
   if (!CONFIG.ballersKey) missing.push('BALLERS_KEY');
 
   return {
