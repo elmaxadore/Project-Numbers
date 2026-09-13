@@ -28,14 +28,23 @@ function loadHistoricalData() {
         footballMatches = rawData.football;
     }
     logger.info(`Found ${footballMatches.length} football matches in cache`);
-    // Transform to our format
-    const matches = footballMatches.map((m) => {
+    // Transform to our format - filter out matches with missing critical data
+    const matches = footballMatches
+        .filter((m) => {
+        // Skip matches with unknown/null teams or league (data integrity check)
+        if (!m.homeTeam || !m.awayTeam || !m.league) {
+            logger.debug(`⚠️ Skipping backtest match with missing  ${m.homeTeam || 'Unknown'} vs ${m.awayTeam || 'Unknown'}`);
+            return false;
+        }
+        return true;
+    })
+        .map((m) => {
         const homeGoals = m.homeScore ?? m.homeGoals ?? 0;
         const awayGoals = m.awayScore ?? m.awayGoals ?? 0;
         return {
             Date: m.date || new Date().toISOString().split('T')[0],
-            HomeTeam: m.homeTeam || 'Unknown',
-            AwayTeam: m.awayTeam || 'Unknown',
+            HomeTeam: m.homeTeam,
+            AwayTeam: m.awayTeam,
             FTHomeGoals: homeGoals,
             FTAwayGoals: awayGoals,
             FTResult: homeGoals > awayGoals ? 'H' : homeGoals < awayGoals ? 'A' : 'D',
@@ -45,8 +54,8 @@ function loadHistoricalData() {
             Over25: (homeGoals + awayGoals) > 2.5 ? 1 : 0,
             Under25: (homeGoals + awayGoals) <= 2.5 ? 1 : 0,
             BTTS: (homeGoals >= 1 && awayGoals >= 1) ? 1 : 0,
-            Season: m.season || 'Unknown',
-            League: m.league || 'Unknown'
+            Season: m.season || '2023-24',
+            League: m.league
         };
     });
     // Sort by season and then by team name for consistent ordering (dates are null in scraped data)

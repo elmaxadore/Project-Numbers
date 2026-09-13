@@ -77,28 +77,37 @@ function loadHistoricalData(): MatchData[] {
   
   logger.info(`Found ${footballMatches.length} football matches in cache`);
   
-  // Transform to our format
-  const matches: MatchData[] = footballMatches.map((m: any) => {
-    const homeGoals = m.homeScore ?? m.homeGoals ?? 0;
-    const awayGoals = m.awayScore ?? m.awayGoals ?? 0;
-    
-    return {
-      Date: m.date || new Date().toISOString().split('T')[0],
-      HomeTeam: m.homeTeam || 'Unknown',
-      AwayTeam: m.awayTeam || 'Unknown',
-      FTHomeGoals: homeGoals,
-      FTAwayGoals: awayGoals,
-      FTResult: homeGoals > awayGoals ? 'H' : homeGoals < awayGoals ? 'A' : 'D',
-      B365H: m.oddsHome ?? m.B365H ?? 2.0,
-      B365D: m.oddsDraw ?? m.B365D ?? 3.5,
-      B365A: m.oddsAway ?? m.B365A ?? 3.0,
-      Over25: (homeGoals + awayGoals) > 2.5 ? 1 : 0,
-      Under25: (homeGoals + awayGoals) <= 2.5 ? 1 : 0,
-      BTTS: (homeGoals >= 1 && awayGoals >= 1) ? 1 : 0,
-      Season: m.season || 'Unknown',
-      League: m.league || 'Unknown'
-    };
-  });
+  // Transform to our format - filter out matches with missing critical data
+  const matches: MatchData[] = footballMatches
+    .filter((m: any) => {
+      // Skip matches with unknown/null teams or league (data integrity check)
+      if (!m.homeTeam || !m.awayTeam || !m.league) {
+        logger.debug(`⚠️ Skipping backtest match with missing  ${m.homeTeam || 'Unknown'} vs ${m.awayTeam || 'Unknown'}`);
+        return false;
+      }
+      return true;
+    })
+    .map((m: any) => {
+      const homeGoals = m.homeScore ?? m.homeGoals ?? 0;
+      const awayGoals = m.awayScore ?? m.awayGoals ?? 0;
+      
+      return {
+        Date: m.date || new Date().toISOString().split('T')[0],
+        HomeTeam: m.homeTeam,
+        AwayTeam: m.awayTeam,
+        FTHomeGoals: homeGoals,
+        FTAwayGoals: awayGoals,
+        FTResult: homeGoals > awayGoals ? 'H' : homeGoals < awayGoals ? 'A' : 'D',
+        B365H: m.oddsHome ?? m.B365H ?? 2.0,
+        B365D: m.oddsDraw ?? m.B365D ?? 3.5,
+        B365A: m.oddsAway ?? m.B365A ?? 3.0,
+        Over25: (homeGoals + awayGoals) > 2.5 ? 1 : 0,
+        Under25: (homeGoals + awayGoals) <= 2.5 ? 1 : 0,
+        BTTS: (homeGoals >= 1 && awayGoals >= 1) ? 1 : 0,
+        Season: m.season || '2023-24',
+        League: m.league
+      };
+    });
 
   // Sort by season and then by team name for consistent ordering (dates are null in scraped data)
   const seasonOrder: Record<string, number> = {'2021-22': 1, '2022-23': 2, '2023-24': 3};
