@@ -40,7 +40,7 @@ export const CONFIG = {
 export function validateConfig() {
     const missing = [];
     if (!CONFIG.apiSportsKey)
-        missing.push('API_SPORTS_KEY');
+        missing.push('API_SPORTS_KEY or X_RAPIDAPI_KEY');
     if (!CONFIG.ballersKey)
         missing.push('BALLERS_KEY');
     return {
