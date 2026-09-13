@@ -100,9 +100,9 @@ export async function fetchTodaysFixtures() {
                 else {
                     logger.info(`✅ Found ${fixtures.length} fixtures for ${dateStr} (${dayOffset} day${dayOffset > 1 ? 's' : ''} ahead) via ${source}`);
                 }
-                // Log first few fixtures for debugging
-                fixtures.slice(0, 3).forEach(f => {
-                    logger.debug(`  - ${f.homeTeam.name} vs ${f.awayTeam.name} (${f.leagueName})`);
+                // Log first few fixtures for debugging (use console.log since logger.debug might be filtered)
+                fixtures.slice(0, 5).forEach(f => {
+                    console.log(`  🔍 Fixture: ${f.homeTeam.name} vs ${f.awayTeam.name} (${f.leagueName})`);
                 });
                 return fixtures;
             }

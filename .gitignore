@@ -1,55 +1,26 @@
 ```
-# Release assets and binaries
-release-assets/
-*.bin
-
-# Compiled and build artifacts
-*.pyc
-__pycache__/
-*.o
-*.obj
-*.exe
-*.dll
-*.so
-*.a
-*.out
+# Build artifacts
 dist/
-build/
-target/
+*.js.map
 
 # Dependencies
-.venv/
-venv/
 node_modules/
-.julia/
-zig*/
-.jupyter/
-.mypy_cache/
-.pytest_cache/
-.coverage
-coverage/
-htmlcov/
+
+# Environment
+.env
+.env.local
+*.env.*
+
+# Editors
+.vscode/
+.idea/
 
 # Logs and temp files
 *.log
 *.tmp
 *.swp
-*.swo
-*.bak
-*.cache
 
-# Environment
-.env
-.env.local
-.env.*
-
-# Editors
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# System files
+# OS
 .DS_Store
 Thumbs.db
 ```
