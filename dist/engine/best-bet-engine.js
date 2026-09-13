@@ -146,6 +146,14 @@ export async function findBestBet(fixtures) {
     allQualifiedBets.sort((a, b) => b.modelProbability - a.modelProbability);
     const bestBet = allQualifiedBets[0];
     logger.info(`✅ Found ${allQualifiedBets.length} qualified bets. Best probability: ${(bestBet.modelProbability * 100).toFixed(1)}%`);
+    // Log ALL qualified bets for debugging
+    console.log('\n📊 ALL QUALIFIED BETS FOUND:');
+    allQualifiedBets.forEach((bet, index) => {
+        console.log(`  ${index + 1}. ${bet.match} (${bet.league})`);
+        console.log(`     Market: ${bet.market} | Prediction: ${bet.prediction}`);
+        console.log(`     Probability: ${(bet.modelProbability * 100).toFixed(1)}% | EV: ${bet.ev}%`);
+    });
+    console.log('');
     return {
         match: bestBet.match,
         league: bestBet.league,
