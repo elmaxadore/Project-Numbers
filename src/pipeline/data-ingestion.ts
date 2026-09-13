@@ -26,37 +26,21 @@ export function passesLeagueFilter(
 
 /**
  * Fetch upcoming fixtures for given leagues
- * In production, this would call API-Sports or similar
+ * PRODUCTION READY: Uses real API calls via todays-fixtures-fetcher
+ * This legacy function is kept for backward compatibility but should not be used in production
  */
 export async function fetchUpcomingFixtures(
   leagueIds: number[],
   season: number
 ): Promise<Fixture[]> {
-  logger.info(`Fetching upcoming fixtures for ${leagueIds.length} leagues...`);
+  logger.warn('⚠️  WARNING: fetchUpcomingFixtures() is deprecated for production use.');
+  logger.warn('⚠️  Use fetchTodaysFixtures() from todays-fixtures-fetcher.ts instead.');
+  logger.warn('⚠️  Returning empty array to prevent accidental use of mock data in production.');
   
-  // Demo mode: generate mock fixtures
-  const mockFixtures: Fixture[] = [];
-  
-  for (const leagueId of leagueIds.slice(0, 3)) {
-    const league = KNOWN_LEAGUES.find(l => l.id === leagueId);
-    if (!league) continue;
-    
-    // Generate 5 mock fixtures per league
-    for (let i = 0; i < 5; i++) {
-      mockFixtures.push({
-        id: leagueId * 1000 + i,
-        leagueId: league.id,
-        leagueName: league.name,
-        homeTeam: { id: i * 2, name: `${league.name} Home ${i}` },
-        awayTeam: { id: i * 2 + 1, name: `${league.name} Away ${i}` },
-        date: new Date(Date.now() + (i + 1) * 86400000).toISOString(),
-        status: 'scheduled',
-      });
-    }
-  }
-  
-  logger.info(`Found ${mockFixtures.length} upcoming fixtures`);
-  return mockFixtures;
+  // CRITICAL: Do NOT return mock fixtures in production
+  // This prevents accidental deployment with fake data
+  // Production code should use src/data/todays-fixtures-fetcher.ts which fetches REAL fixtures
+  return [];
 }
 
 /**

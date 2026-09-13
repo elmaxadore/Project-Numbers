@@ -150,8 +150,12 @@ export class SportsAPIFetcher {
     async fetchFootballFromAPI() {
         const apiKey = this.apiKeys.get('api-football');
         if (!apiKey) {
-            console.warn('API-Football key not provided. Returning mock data.');
-            return this.generateMockFootballData();
+            // CRITICAL: Do NOT return mock data in production
+            // This prevents accidental deployment with fake fixtures
+            console.warn('⚠️  WARNING: API-Football key not provided.');
+            console.warn('⚠️  Returning empty array to prevent use of mock data in production.');
+            console.warn('⚠️  Set API-Football key or use TheSportsDB via todays-fixtures-fetcher.ts');
+            return [];
         }
         try {
             const response = await axios.get('https://v3.football.api-sports.io/fixtures', {
@@ -181,16 +185,19 @@ export class SportsAPIFetcher {
         }
         catch (error) {
             console.error('API-Football fetch failed:', error.message);
-            return this.generateMockFootballData();
+            // CRITICAL: Do NOT return mock data in production on error
+            console.warn('⚠️  API-Football error - returning empty array to prevent mock data usage');
+            return [];
         }
     }
     /**
      * Fetch basketball data from TheRundown API (free tier available)
      */
     async fetchBasketballFromAPI() {
-        // Implementation would use TheRundown or similar API
-        console.log('Basketball API: Requires API key configuration');
-        return this.generateMockBasketballData();
+        // CRITICAL: Do NOT return mock data in production
+        console.warn('⚠️  WARNING: Basketball API not implemented for production.');
+        console.warn('⚠️  Returning empty array to prevent mock data usage.');
+        return [];
     }
     /**
      * Generate mock data for testing when APIs are unavailable
