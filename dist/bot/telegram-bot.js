@@ -143,8 +143,7 @@ async function main() {
         const fixtures = await fetchTodaysFixtures();
         const todayStr = new Date().toISOString().split('T')[0];
         if (fixtures.length === 0) {
-            console.log('⚠️ No fixtures found for today.');
-            throw new Error(`No fixtures scheduled for today (${todayStr}). This could mean: 1) It's an off-season day, 2) API-Sports returned empty due to invalid key, or 3) No matches are scheduled. Check your X_RAPIDAPI_KEY secret and try again tomorrow.`);
+            throw new Error(`No fixtures scheduled for today (${todayStr}). This is normal during off-season periods. Check back tomorrow when matches are scheduled.`);
         }
         console.log(`✅ Found ${fixtures.length} real matches for today`);
         // 4. Run Best Bet Engine on Real Fixtures

@@ -21,6 +21,7 @@ export interface TodaysFixture {
 /**
  * Fetch all fixtures scheduled for today
  * Throws error if API key is missing or API call fails
+ * Returns empty array only if API succeeds but no fixtures exist for today
  */
 export declare function fetchTodaysFixtures(): Promise<TodaysFixture[]>;
 /**
