@@ -2,7 +2,7 @@
  * Best Bet Engine
  * Finds the highest EV bet from today's fixtures using real-time data
  */
-import { TodaysFixture } from '../data/todays-fixtures-fetcher.js';
+import { Fixture } from '../types/fixtures.js';
 export interface PredictionResult {
     match: string;
     league: string;
@@ -17,5 +17,5 @@ export interface PredictionResult {
  * Find the best bet from today's fixtures
  * Returns the single highest EV bet that meets confidence thresholds
  */
-export declare function findBestBet(fixtures: TodaysFixture[]): Promise<PredictionResult>;
+export declare function findBestBet(fixtures: Fixture[]): Promise<PredictionResult>;
 //# sourceMappingURL=best-bet-engine.d.ts.map

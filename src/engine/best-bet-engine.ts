@@ -7,7 +7,7 @@ import { logger } from '../utils/logger.js';
 import { DEFAULT_O25_WEIGHTS, DEFAULT_BTTS_WEIGHTS } from './logistic-regression.js';
 import { predictFixture } from './prediction-pipeline.js';
 import { FixtureDataPackage } from '../models/types.js';
-import { TodaysFixture } from '../data/todays-fixtures-fetcher.js';
+import { Fixture } from '../types/fixtures.js';
 
 export interface PredictionResult {
   match: string;
@@ -36,27 +36,27 @@ interface QualifiedBet {
 /**
  * Process a single fixture and return qualified bets
  */
-async function processFixture(fixture: TodaysFixture): Promise<QualifiedBet[]> {
+async function processFixture(fixture: Fixture): Promise<QualifiedBet[]> {
   const qualifiedBets: QualifiedBet[] = [];
   
   try {
     // Create fixture data package with estimated stats (since we can't access API-Sports)
     const fixturePackage: FixtureDataPackage = {
       fixture: {
-        id: fixture.id,
-        leagueId: fixture.leagueId,
-        leagueName: fixture.leagueName,
-        homeTeam: { id: fixture.homeTeam.id, name: fixture.homeTeam.name },
-        awayTeam: { id: fixture.awayTeam.id, name: fixture.awayTeam.name },
-        date: fixture.date,
+        id: fixture.fixture.id,
+        leagueId: fixture.fixture.leagueId,
+        leagueName: fixture.fixture.leagueName,
+        homeTeam: { id: fixture.fixture.homeTeam.id, name: fixture.fixture.homeTeam.name },
+        awayTeam: { id: fixture.fixture.awayTeam.id, name: fixture.fixture.awayTeam.name },
+        date: fixture.fixture.date,
         status: 'scheduled' as const
       },
       // Use historical averages as fallback since we can't fetch real-time stats without API key
       expectedStats: {
-        fixtureId: fixture.id,
+        fixtureId: fixture.fixture.id,
         homeTeamStats: {
-          teamId: fixture.homeTeam.id,
-          teamName: fixture.homeTeam.name,
+          teamId: fixture.fixture.homeTeam.id,
+          teamName: fixture.fixture.homeTeam.name,
           venue: 'home',
           matchesPlayed: 10,
           goalsScored: 15,
@@ -72,8 +72,8 @@ async function processFixture(fixture: TodaysFixture): Promise<QualifiedBet[]> {
           over15Rate: 0.75
         },
         awayTeamStats: {
-          teamId: fixture.awayTeam.id,
-          teamName: fixture.awayTeam.name,
+          teamId: fixture.fixture.awayTeam.id,
+          teamName: fixture.fixture.awayTeam.name,
           venue: 'away',
           matchesPlayed: 10,
           goalsScored: 13,
@@ -123,9 +123,9 @@ async function processFixture(fixture: TodaysFixture): Promise<QualifiedBet[]> {
       // Include all predictions with modelProb > 50% (positive expected value territory)
       if (modelProb > 0.50) {
         qualifiedBets.push({
-          fixtureId: fixture.id,
-          match: `${fixture.homeTeam.name} vs ${fixture.awayTeam.name}`,
-          league: fixture.leagueName,
+          fixtureId: fixture.fixture.id,
+          match: `${fixture.fixture.homeTeam.name} vs ${fixture.fixture.awayTeam.name}`,
+          league: fixture.fixture.leagueName,
           market: pred.market.replace('_', ' ').toUpperCase(),
           prediction: pred.market.includes('over') || pred.market.includes('btts_yes') ? 'Yes' : 'No',
           modelProbability: modelProb,
@@ -137,7 +137,7 @@ async function processFixture(fixture: TodaysFixture): Promise<QualifiedBet[]> {
       }
     }
   } catch (error: any) {
-    logger.error(`Error processing fixture ${fixture.id}: ${error.message}`);
+    logger.error(`Error processing fixture ${fixture.fixture.id}: ${error.message}`);
     // Continue with other fixtures instead of failing completely
   }
   
@@ -148,7 +148,7 @@ async function processFixture(fixture: TodaysFixture): Promise<QualifiedBet[]> {
  * Find the best bet from today's fixtures
  * Returns the single highest EV bet that meets confidence thresholds
  */
-export async function findBestBet(fixtures: TodaysFixture[]): Promise<PredictionResult> {
+export async function findBestBet(fixtures: Fixture[]): Promise<PredictionResult> {
   logger.info('🧠 Running prediction engine on real fixtures...');
   
   if (!fixtures || fixtures.length === 0) {

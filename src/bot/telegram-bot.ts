@@ -175,9 +175,10 @@ async function main() {
     // 3. Fetch REAL Today's Fixtures via API-Sports
     console.log('📅 Fetching real fixtures for today...');
     
-    const { fetchTodaysFixtures } = await import('../data/todays-fixtures-fetcher.js');
-    const fixtures = await fetchTodaysFixtures();
-    const todayStr = new Date().toISOString().split('T')[0];
+    const { getFixturesByDate } = await import('../data/todays-fixtures-fetcher.js');
+    const todayStr = new Date().toISOString().split("T")[0];
+    const endDate = new Date(); endDate.setDate(endDate.getDate() + 7);
+    const fixtures = await getFixturesByDate(todayStr, endDate.toISOString().split("T")[0]);
     
     if (fixtures.length === 0) {
       throw new Error(`No fixtures scheduled for today (${todayStr}). This is normal during off-season periods. Check back tomorrow when matches are scheduled.`);

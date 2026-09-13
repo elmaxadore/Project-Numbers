@@ -1,27 +1,7 @@
 /**
- * Today's Fixtures Fetcher
- * Fetches real upcoming matches using API-Sports (RapidAPI) or TheSportsDB (free fallback)
+ * Fetches today's fixtures from FREE sources (no paid API key required)
+ * Priority: 1) Football-Data.org CSV, 2) TheSportsDB (limited), 3) Fallback to known upcoming matches
  */
-export interface TodaysFixture {
-    id: number;
-    leagueId: number;
-    leagueName: string;
-    homeTeam: {
-        id: number;
-        name: string;
-    };
-    awayTeam: {
-        id: number;
-        name: string;
-    };
-    date: string;
-    timestamp: number;
-    status: 'scheduled' | 'live' | 'finished';
-}
-/**
- * Fetch all fixtures scheduled for today. If none found, searches next 7 days.
- * Tries API-Sports first (if key available), then falls back to TheSportsDB (free)
- * Throws error only if both sources fail
- */
-export declare function fetchTodaysFixtures(): Promise<TodaysFixture[]>;
+import { Fixture } from '../types/fixtures.js';
+export declare function getFixturesByDate(startDate: string, endDate: string): Promise<Fixture[]>;
 //# sourceMappingURL=todays-fixtures-fetcher.d.ts.map
